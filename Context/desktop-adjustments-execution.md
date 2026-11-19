@@ -1,0 +1,11 @@
+# WaveDeck desktop adjustments - 2026-10-04
+
+Requested: remember the active song and position; background media keys and configurable global play/pause; default file association setup, multi-file forwarding and configurable sibling/folder scans; configurable XP-inspired ambient third channel and visualizer switches; usable alternatives when a browser protects its YouTube session.
+
+Implement in the Windows player and rebuild the WaveDeck folder. Keep version 1.0.0 and shared models compatible with the existing Linux project. No agent delegation. Validate with isolated profiles and original silent media fixtures, never real account sessions or user default association changes. File associations are registered only through the user's Settings button; Windows handles the final default choice. Normal browser sign-in continues to use the shell's HTTPS handler. Browser protection must not be disabled. Dedicated sign-in and explicit session-file import are alternatives.
+
+Playback restores paused at the saved position, including the current chapter. Explicit file opening overrides restored playback. Checkpoint state without serializing giant playlists on every frame. Save before disposing the audio engine. A single user/profile player receives later Explorer opens over a current-user-only named pipe.
+
+Completed: shared preferences/bookmarks, Windows paused restore, global no-repeat media/hotkeys, association setup and single-instance forwarding, configurable discovery, three ambient modes plus phase and switches, separate sign-in and session import. The playback engine can prepare paused without starting output or consuming samples. Pausing/resuming checkpoints immediately and resumed playback still participates in optional watch history. Existing frame/slider/download/queue behavior remains validated.
+
+Native release 49/49 and desktop release 32 checks pass. The Linux project still compiles; its packaged interface is unchanged. Installed Windows files match staging and tool hashes are unchanged. Retain the running original DLL in the scoped version backup and tell the user to restart to pick up the update. See desktop-adjustments-validation.md for evidence and manual account/default-app checks.

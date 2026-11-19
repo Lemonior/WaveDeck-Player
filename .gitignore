@@ -1,0 +1,25 @@
+# Build output and local tools
+**/bin/
+**/obj/
+**/.vs/
+artifacts/
+tools/
+WaveDeck/
+WaveDeck-Linux/
+WaveDeck-Android/
+WaveDeck.rar
+*.zip
+*.rar
+*.user
+
+# Local agent instructions and unrelated desktop utilities
+AGENTS.md
+/shexview_brazilian_portuguese/
+
+# Local editor settings and credentials
+.vscode/
+.idea/
+.env
+.env.*
+!.env.example
+*.suo

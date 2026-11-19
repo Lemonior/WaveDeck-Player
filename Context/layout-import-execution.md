@@ -1,0 +1,14 @@
+# WaveDeck header, channel sizing and playlist filtering - 2026-10-04
+
+User requests: restore the maximized window by dragging its header; omit unavailable/private playlist entries during import; move roughly 10-15% of visualizer height to the mixer; hide disabled channels and redistribute their space.
+
+Implementation:
+
+- Header mouse-down captures the pointer. Moving past the Windows drag threshold restores a maximized window, preserves the grabbed horizontal position/vertical offset, and follows the pointer for the rest of the gesture. Release/lost capture ends the gesture. Header buttons keep their normal behavior, clicks do not restore, and double-click still toggles maximization. Continuous capture avoids entering a second native movement loop after restore. Normal-state dragging enters its native move loop only after crossing the drag threshold, preserving the click sequence. Validation uses the explicit physical-coordinate cursor APIs so input remains consistent between the UI and worker threads on the scaled display.
+- The channel rows have explicit names. Each visible row gets 87.5% of its former share, respecting its 32-DIP minimum. The mixer receives the difference and all height released by hidden rows. Disabled controls use Collapsed and zero-height rows. The mixer remains a flexible star row with a 212-DIP minimum. Reallocation follows window resizing, chapter-transport changes and channel switches.
+- Flat playlist extraction tolerates individual errors. Parsing omits null/error/empty placeholders, explicit private/deleted/unavailable/blocked statuses, explicit unplayability flags/status, and exact private/deleted/unavailable placeholder titles. Unlisted items, unknown availability, legitimate similarly named songs and membership-dependent items with no explicit unplayability status remain eligible. An individual private-video URL is not filtered as a playlist entry.
+- Page advancement counts the original entries, including skipped ones. Import status shows skipped counts. Go advances automatically through wholly unavailable initial pages; Load next/Load all retain source pagination and configured maximum limits. Playback access can change after import, so existing retry/skip behavior remains relevant for unknown or later unavailable items.
+
+Primary extractor reference consulted: [yt-dlp YouTube playlist implementation](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/extractor/youtube/_tab.py), particularly flat metadata availability and reloading playlist entries that include unavailable videos. No exhaustive per-video network probe is performed during import.
+
+Validation: generated metadata, all 8 channel combinations in all 3 themes and normal/minimum/maximized windows, all 3 mixer tabs, real Windows cursor/mouse input, and existing live muted playback checks. The user's running player is preserved when publishing the updated Windows executable.

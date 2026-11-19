@@ -1,0 +1,13 @@
+# Equalizer V2 and audio-built visuals
+
+Request: the music must generate Channel C's shape. Preserve the ten-band EQ as a tab, add understandable rotary controls and miscellaneous sound/playback processing for DJ-style listening. Build the Windows WaveDeck folder, retaining version 1.0.0, themes, chapters, continuity and low-memory buffer reuse.
+
+Implementation: audio-derived waveform/spectrum/stereo contours with actual previous-frame trails, no elapsed-time shape oscillator. Three compact themed tabs: Equalizer, Knobs, Effects. Tone shelves/presence, drive, compression and balance; independent tempo/pitch, echo, room/reverb, sweep/filter and bit crushing. Detail controls expose echo time/feedback, room size, filter resonance, wet/dry mix and tape mode. Defaults, full bypass, explicit values, precise entry, presets and persistent preferences. Effects stay in the live playback path and do not modify original downloads.
+
+Use managed SoundTouch.Net 2.3.2 for tempo/pitch, as a separate replaceable library with upstream source/license included. Lazily initialize processing buffers. Keep output metering distinct from the visual signal. Flush tempo processing at EOF, reset buffers on seeks, preserve relative chapter position and paused state. Existing shared Linux code must compile; the Windows UI is the delivery target of this change.
+
+Validation: rendered signal-based visuals (identical audio has identical shapes, silence has no decorative wave); numerical DSP/tempo/pitch/duration tests with generated fixtures; settings/preset round trips; real Windows muted playback and live controls; all themes and minimum/maximized layout. Isolated profiles only. Keep any existing user playback process running during package replacement. Record actual evidence and remaining interactive listening checks when complete.
+
+Completed: audio-built contours / previous-frame trails; three themed tabs with twelve rotary controls, five detail controls and tape mode; live effect chain; independent tempo and pitch; recipes, exact-value entry, defaults, full bypass and full sound preset compatibility. The new DLL is packaged separately with its unmodified pinned upstream source and LGPL license. Large DSP buffers initialize only when needed and visual frames reuse a roughly 10 KB history.
+
+Final native Windows checks: 58/58 passed. Complete desktop checks: 42 passed. Focused sound/visual checks: 10 passed. Shared Linux Release build passes with zero warnings/errors; Linux package/UI is not part of this update. Full evidence and listening limits are in equalizer-v2-validation.md. Rebuild into WaveDeck, verify the installed assembly against staging, and keep the release number 1.0.0.

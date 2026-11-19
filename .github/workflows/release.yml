@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build (for example v1.0.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build and verify release ZIPs
+        shell: pwsh
+        run: ./scripts/Package-Release.ps1 -ExpectedTag $env:RELEASE_TAG
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = $env:RELEASE_TAG.Substring(1)
+          $assets = @(Get-ChildItem "artifacts/releases/$version/*.zip" | ForEach-Object FullName)
+          $assets += (Resolve-Path "artifacts/releases/$version/SHA256SUMS.txt").Path
+          gh release create $env:RELEASE_TAG @assets --verify-tag --title "WaveDeck $version" --notes-file RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub Release publication failed.' }

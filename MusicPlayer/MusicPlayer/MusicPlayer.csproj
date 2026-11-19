@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>WaveDeck</AssemblyName>
+    <RootNamespace>MusicPlayer</RootNamespace>
+    <ApplicationIcon>Assets\WaveDeck.ico</ApplicationIcon>
+    <GarbageCollectionAdaptationMode>1</GarbageCollectionAdaptationMode>
+    <Authors>WaveDeck</Authors>
+    <Description>A classic desktop music player with live audio channels and a ten-band equalizer.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
+    <Resource Include="Assets\WaveDeck.png" />
+    <None Include="Assets\WaveDeck.svg" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\*" Exclude="..\..\tools\*.zip;..\..\tools\*.partial" Link="tools\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\tools\SoundTouch.Net-2.3.2-source.zip" Link="tools\SoundTouch.Net-2.3.2-source.zip" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

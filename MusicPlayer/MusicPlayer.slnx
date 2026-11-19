@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MusicPlayer/MusicPlayer.csproj" />
+  <Project Path="WaveDeck.Linux/WaveDeck.Linux.csproj" />
+</Solution>
