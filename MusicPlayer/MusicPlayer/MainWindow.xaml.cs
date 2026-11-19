@@ -51,9 +51,13 @@ public partial class MainWindow : Window
     public MainWindow(Storage? storage = null, Func<Track, CancellationToken, Task<List<Track>>>? readChapters = null, Func<Track, CancellationToken, Action<string>?, Task<string>>? download = null, Func<Track, CancellationToken, bool, Task<ResolvedAudio>>? resolve = null)
     {
         _storage = storage ?? new(); _settings = _storage.Load(); _session = new(_storage);
+        L.Apply(_settings.Language);
         _urls = new(_tools, _settings, _session, _storage.Root); _engine = new(_tools); _preparation = new(_tools, _urls, _storage, resolve);
         _readChapters = readChapters ?? ((parent, token) => _urls.ChaptersAsync(parent, token, refresh: true));
         InitializeComponent();
+        UiText.LocalizeItems(PresetBox);
+        L.Instance.PropertyChanged += LanguageChanged;
+        Closed += (_, _) => L.Instance.PropertyChanged -= LanguageChanged;
         SetUpDesktopControls();
         ThemeService.Apply(_settings.Theme);
         _downloadProgress = new(Dispatcher, DownloadChanged);
@@ -72,7 +76,7 @@ public partial class MainWindow : Window
         _engine.Ended += error => Dispatcher.BeginInvoke(async () => await HandleEndAsync(error));
         _timer.Tick += (_, _) => RefreshPlayer(); _timer.Start();
         _ready = true; ConfigureAudio(); UpdateQueue(); UpdateModes(); ApplyVisualOptions();
-        ToolsLabel.Text = _tools.Ready ? "● ONLINE TOOLS READY" : "● LOCAL AUDIO READY";
+        ToolsLabel.Text = _tools.Ready ? L.T("● ONLINE TOOLS READY") : L.T("● LOCAL AUDIO READY");
     }
     private void BuildEqualizer()
     {
@@ -81,10 +85,10 @@ public partial class MainWindow : Window
         {
             var index = i;
             var panel = new Grid(); panel.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) }); panel.RowDefinitions.Add(new() { Height = GridLength.Auto });
-            var slider = new DragSlider { Orientation = Orientation.Vertical, Minimum = -12, Maximum = 12, Value = _settings.Gains[i], SmallChange = 1, LargeChange = 3, TickFrequency = 1, IsSnapToTickEnabled = true, IsMoveToPointEnabled = true, Margin = new(0, 1, 0, 5), ToolTip = labels[i] + " Hz · " + _settings.Gains[i] + " dB" };
+            var slider = new DragSlider { Orientation = Orientation.Vertical, Minimum = -12, Maximum = 12, Value = _settings.Gains[i], SmallChange = 1, LargeChange = 3, TickFrequency = 1, IsSnapToTickEnabled = true, IsMoveToPointEnabled = true, Margin = new(0, 1, 0, 5), ToolTip = labels[i] + L.T(" Hz · ") + _settings.Gains[i] + L.T(" dB") };
             slider.ValueChanged += (_, _) =>
             {
-                slider.ToolTip = (EqualizerSampleProvider.Frequencies[index] >= 1000 ? labels[index] + "Hz" : labels[index] + " Hz") + $" · {slider.Value:+0;-0;0} dB";
+                slider.ToolTip = (EqualizerSampleProvider.Frequencies[index] >= 1000 ? labels[index] + "Hz" : labels[index] + L.T(" Hz")) + L.F($" · {slider.Value:+0;-0;0} dB");
                 if (!_ready || _presetLoading) return;
                 _settings.Gains[index] = (float)slider.Value; MarkSoundCustom(); ConfigureAudio();
             };
@@ -93,10 +97,14 @@ public partial class MainWindow : Window
             text.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
             panel.Children.Add(slider); panel.Children.Add(text); EqSliders.Children.Add(panel); _bands.Add(slider);
         }
+        BuildPresetMenu();
+    }
+    private void BuildPresetMenu()
+    {
         var menu = new ContextMenu();
-        var save = new MenuItem { Header = "Save full sound preset…" }; save.Click += SaveEq_Click;
-        var load = new MenuItem { Header = "Load full sound preset…" }; load.Click += LoadEq_Click;
-        var reset = new MenuItem { Header = "Restore defaults" }; reset.Click += DefaultEq_Click;
+        var save = new MenuItem { Header = L.T("Save full sound preset…") }; save.Click += SaveEq_Click;
+        var load = new MenuItem { Header = L.T("Load full sound preset…") }; load.Click += LoadEq_Click;
+        var reset = new MenuItem { Header = L.T("Restore defaults") }; reset.Click += DefaultEq_Click;
         menu.Items.Add(save); menu.Items.Add(load); menu.Items.Add(reset); PresetBox.ContextMenu = menu;
     }
     private bool FilterTrack(object item)
@@ -106,17 +114,17 @@ public partial class MainWindow : Window
     }
     private void UpdateQueue()
     {
-        QueueCount.Text = $"{_queue.Count} TRACK{(_queue.Count == 1 ? "" : "S")}";
+        QueueCount.Text = _queue.Count == 1 ? L.F($"{_queue.Count} TRACK") : L.F($"{_queue.Count} TRACKS");
         EmptyQueue.Visibility = _queue.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         var duration = _queue.Sum(t => Math.Max(0, t.Duration));
-        PlaylistFooter.Text = _queue.Count == 0 ? "Double-click to play · Drag files to add · Space to pause" : $"{_queue.Count} tracks · {TimeSpan.FromSeconds(duration).TotalHours:0.#} hours · Double-click to play";
+        PlaylistFooter.Text = _queue.Count == 0 ? L.T("Double-click to play · Drag files to add · Space to pause") : _queue.Count == 1 ? L.F($"{_queue.Count} track · {TimeSpan.FromSeconds(duration).TotalHours:0.#} hours · Double-click to play") : L.F($"{_queue.Count} tracks · {TimeSpan.FromSeconds(duration).TotalHours:0.#} hours · Double-click to play");
     }
     private void UpdateModes()
     {
-        RepeatButton.Content = "REPEAT: " + _settings.Repeat.ToUpperInvariant();
+        RepeatButton.Content = L.F($"REPEAT: {L.T(_settings.Repeat).ToUpperInvariant()}");
         ShuffleButton.SetResourceReference(Control.BackgroundProperty, _settings.Shuffle ? "GoldChrome" : "Chrome");
-        ShuffleButton.ToolTip = "Shuffle " + (_settings.Shuffle ? "on" : "off");
-        BypassButton.Content = _bypass ? "DRY" : "A/B";
+        ShuffleButton.ToolTip = L.T("Shuffle ") + (_settings.Shuffle ? L.T("on") : L.T("off"));
+        BypassButton.Content = _bypass ? L.T("DRY") : L.T("A/B");
         BypassButton.SetResourceReference(Control.BackgroundProperty, _bypass ? "GoldChrome" : "Chrome");
     }
     private void RefreshPlayer()
@@ -143,8 +151,8 @@ public partial class MainWindow : Window
         SeekSlider.IsEnabled = duration > 0 && _engine.HasSource;
         if (!_seeking) { SeekSlider.Maximum = Math.Max(1, duration); SeekSlider.Value = Math.Min(pos, SeekSlider.Maximum); }
         RefreshDesktopControls();
-        PlaybackLabel.Text = _engine.IsPlaying ? "PLAYING" : _engine.IsPaused ? "PAUSED" : _playCancel != null ? "BUFFERING…" : "READY TO PLAY";
-        if (_current != null) { TrackTitle.Text = _current.Title; TrackArtist.Text = string.IsNullOrEmpty(_current.Artist) ? (_current.LocalPath.Length > 0 ? Path.GetFileName(_current.LocalPath) : "Online audio") : _current.Artist; SourceLabel.Text = "● " + _current.Source; }
+        PlaybackLabel.Text = _engine.IsPlaying ? L.T("PLAYING") : _engine.IsPaused ? L.T("PAUSED") : _playCancel != null ? L.T("BUFFERING…") : L.T("READY TO PLAY");
+        if (_current != null) { TrackTitle.Text = _current.Title; TrackArtist.Text = string.IsNullOrEmpty(_current.Artist) ? (_current.LocalPath.Length > 0 ? Path.GetFileName(_current.LocalPath) : L.T("Online audio")) : _current.Artist; SourceLabel.Text = "● " + _current.Source; }
         var info = _engine.FormatInfo; var separator = info.IndexOf(" · ", StringComparison.Ordinal);
         FormatLabel.Text = separator >= 0 ? info[..separator] + "\n" + info[(separator + 3)..] : info;
     }
@@ -153,11 +161,28 @@ public partial class MainWindow : Window
     {
         _settings.EqualizerEnabled = true; _settings.SafeGain = SafeGain.IsChecked == true;
         _settings.Preamp = (float)PreampSlider.Value; _settings.StereoWidth = (float)WidthSlider.Value; _settings.Volume = VolumeSlider.Value;
-        PreampText.Text = $"{_settings.Preamp:+0;-0;0} dB"; VolumeText.Text = $"{_settings.Volume:P0}";
+        PreampText.Text = L.F($"{_settings.Preamp:+0;-0;0} dB"); VolumeText.Text = $"{_settings.Volume:P0}";
         _engine.Configure(EqParameters.FromSettings(_settings, _bypass));
         EqSliders.Opacity = _settings.EqualizerEnabled && !_bypass ? 1 : 0.45;
     }
-    private void SetStatus(string text) { if (!_closing) StatusText.Text = text; }
+    private void SetStatus(string text) { if (!_closing) StatusText.Text = L.T(text); }
+    private void LanguageChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (!_ready || _closing) return;
+        UpdateQueue(); UpdateModes(); RefreshChapterUi(); ApplyVisualOptions(); RefreshPlayer();
+        ToolsLabel.Text = L.T(_tools.Ready ? "● ONLINE TOOLS READY" : "● LOCAL AUDIO READY");
+        if (_current == null) { TrackTitle.Text = L.T("Your next favorite frequency."); TrackArtist.Text = L.T("Add music or paste a URL to begin"); }
+        foreach (var item in _soundKnobs.Values)
+        {
+            item.Knob.ToolTip = L.T((string)item.Knob.Tag) + L.T(KnobHelp);
+            System.Windows.Automation.AutomationProperties.SetName(item.Knob, L.T(item.Knob.Caption));
+            item.Knob.InvalidateVisual();
+        }
+        // Recreate display templates while retaining the stored preset identifier.
+        UiText.LocalizeItems(PresetBox);
+        PresetBox.ContextMenu = null; BuildPresetMenu();
+        _soundDetails?.RefreshLanguage(); _view.Refresh();
+    }
     private void Report(Exception ex) { _storage.Log(ex); var message = AudioError.SafeMessage(ex.Message); SetStatus(message); if (!_closing) MessageWindow.Show(this, message); }
     private void BusyChanged()
     {
@@ -167,10 +192,10 @@ public partial class MainWindow : Window
     }
     private async Task RunWorkAsync(Func<CancellationToken, Task> work)
     {
-        if (_workCancel != null) { SetStatus("An import or download is already running. Use Cancel to stop it."); return; }
+        if (_workCancel != null) { SetStatus(L.T("An import or download is already running. Use Cancel to stop it.")); return; }
         using var cancel = new CancellationTokenSource(); _workCancel = cancel; BusyChanged();
         try { await work(cancel.Token); }
-        catch (OperationCanceledException) { SetStatus("Operation cancelled. Completed tracks remain in the playlist."); }
+        catch (OperationCanceledException) { SetStatus(L.T("Operation cancelled. Completed tracks remain in the playlist.")); }
         catch (Exception ex) { Report(ex); }
         finally { _workCancel = null; BusyChanged(); UpdateQueue(); }
     }
@@ -187,7 +212,7 @@ public partial class MainWindow : Window
         _pauseAfterOpen = paused;
         try
         {
-            SetStatus("Opening " + track.Title + "…"); track.State = "…";
+            SetStatus(L.T("Opening ") + track.Title + "…"); track.State = "…";
             PreparedAudio prepared;
             if (ReferenceEquals(_prefetchTrack, track) && _prefetch != null && offset == 0 && !forceCompatible)
             {
@@ -212,14 +237,14 @@ public partial class MainWindow : Window
             _engine.StartPrepared(prepared, EqParameters.FromSettings(_settings, _bypass), paused);
             track.State = nextParent.State = paused ? "Ⅱ" : "▶"; Playlist.SelectedItem = nextParent; Playlist.ScrollIntoView(nextParent);
             RefreshChapterUi(); RefreshPlayer();
-            Title = nextParent.Title + " — WaveDeck"; SetStatus((paused ? "Paused " : "Playing ") + track.Title);
+            Title = nextParent.Title + L.T(" — WaveDeck"); SetStatus((paused ? L.T("Paused ") : L.T("Playing ")) + track.Title);
             _pendingResume = null; CapturePlayback(checkpoint: true);
             _ = SubmitWatchHistoryAsync(track);
             if (!wholeVideo && (startingVideo || !ReferenceEquals(previousParent, nextParent))) StartChapterDetection(nextParent);
             return true;
         }
         catch (OperationCanceledException) { if (!ReferenceEquals(_current, track)) track.State = ""; }
-        catch (Exception ex) { track.State = "!"; _order.Record(chapterParent ?? track); if (chapterParent != null) _chapterOrder.Record(track); if (!_closing) { _storage.Log(ex); Ding(); SetStatus("Skipping " + track.Title + ": " + AudioError.SafeMessage(ex.Message)); } }
+        catch (Exception ex) { track.State = "!"; _order.Record(chapterParent ?? track); if (chapterParent != null) _chapterOrder.Record(track); if (!_closing) { _storage.Log(ex); Ding(); SetStatus(L.T("Skipping ") + track.Title + ": " + AudioError.SafeMessage(ex.Message)); } }
         finally
         {
             if (ReferenceEquals(_playCancel, cancel)) _playCancel = null;
@@ -259,7 +284,7 @@ public partial class MainWindow : Window
         {
             var position = _engine.Position;
             if (_current != null && _recoveries++ < 1)
-            { Ding(); SetStatus("Recovering the audio source…"); if (await PlayTrackAsync(_current, false, true, position, true, _chapterParent)) return; }
+            { Ding(); SetStatus(L.T("Recovering the audio source…")); if (await PlayTrackAsync(_current, false, true, position, true, _chapterParent)) return; }
             _storage.Log(error); if (_current != null) _current.State = "!";
         }
         if (_chapterParent != null && await AdvanceSongAsync(true, error != null ? _current : null)) return;
@@ -283,7 +308,7 @@ public partial class MainWindow : Window
             cursor = next;
         }
         if (!_engine.IsPlaying) StopPlayback();
-        SetStatus(attempted.Count > 0 ? "No further playable tracks. Failed tracks are marked !." : "Playlist finished.");
+        SetStatus(attempted.Count > 0 ? L.T("No further playable tracks. Failed tracks are marked !.") : L.T("Playlist finished."));
     }
     private void StopPlayback()
     {
@@ -292,7 +317,7 @@ public partial class MainWindow : Window
         _engine.Stop();
         if (_current != null) _current.State = "";
         if (_chapterParent != null) _chapterParent.State = "";
-        _seeking = false; SetStatus("Stopped.");
+        _seeking = false; SetStatus(L.T("Stopped."));
     }
     private async Task AddPathsAsync(IEnumerable<string> input)
     {
@@ -317,19 +342,19 @@ public partial class MainWindow : Window
             {
                 token.ThrowIfCancellationRequested();
                 if (!existing.Add(Path.GetFullPath(path))) continue;
-                SetStatus($"Reading music {++added}/{files.Count}…");
+                SetStatus(L.F($"Reading music {++added}/{files.Count}…"));
                 _queue.Add(await LocalLibrary.ReadAsync(path, _tools, token));
             }
-            SetStatus($"Added {added} audio files. {_queue.Count} tracks in your playlist.");
+            SetStatus(L.F($"Added {added} audio files. {_queue.Count} tracks in your playlist."));
         });
     }
     public Task ImportFilesAsync(IEnumerable<string> paths) => AddPathsAsync(paths);
     private async void AddFiles_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Title = "Add music to WaveDeck", Multiselect = true, Filter = "Audio files|*.mp3;*.wav;*.flac;*.m4a;*.aac;*.ogg;*.opus;*.wma;*.aiff;*.aif;*.mp4;*.webm|All files|*.*" };
+        var dialog = new OpenFileDialog { Title = L.T("Add music to WaveDeck"), Multiselect = true, Filter = L.T("Audio files|*.mp3;*.wav;*.flac;*.m4a;*.aac;*.ogg;*.opus;*.wma;*.aiff;*.aif;*.mp4;*.webm|All files|*.*") };
         if (dialog.ShowDialog(this) == true) await AddPathsAsync(dialog.FileNames);
     }
-    private async void Folder_Click(object sender, RoutedEventArgs e) { var dialog = new OpenFolderDialog { Title = "Add a music folder" }; if (dialog.ShowDialog(this) == true) await AddPathsAsync([dialog.FolderName]); }
+    private async void Folder_Click(object sender, RoutedEventArgs e) { var dialog = new OpenFolderDialog { Title = L.T("Add a music folder") }; if (dialog.ShowDialog(this) == true) await AddPathsAsync([dialog.FolderName]); }
     private async void UrlGo_Click(object sender, RoutedEventArgs e)
     {
         if (_workCancel != null) return;
@@ -353,8 +378,8 @@ public partial class MainWindow : Window
         _queue.AddRange(page.Tracks);
         if (session.Mode != "Stream") QueueDownloads(page.Tracks, session.Batch);
         PaginationBar.Visibility = Visibility.Visible;
-        PlaylistPageLabel.Text = $"Loaded through #{session.NextStart - 1}" + (session.Total.HasValue ? $" of {session.Total:N0}" : "") + (session.Skipped > 0 ? $" · skipped {session.Skipped:N0}" : "") + (session.HasMore ? "" : " · complete / limit reached");
-        SetStatus($"Added {page.Tracks.Count} tracks. " + (page.Skipped > 0 ? $"Skipped {page.Skipped:N0} private / unavailable entries. " : "") + (session.HasMore ? "Load next or Load all to continue." : "Playlist import finished."));
+        PlaylistPageLabel.Text = L.F($"Loaded through #{session.NextStart - 1}") + (session.Total.HasValue ? L.F($" of {session.Total:N0}") : "") + (session.Skipped > 0 ? L.F($" · skipped {session.Skipped:N0}") : "") + (session.HasMore ? "" : L.T(" · complete / limit reached"));
+        SetStatus(L.F($"Added {page.Tracks.Count} tracks. ") + (page.Skipped > 0 ? L.F($"Skipped {page.Skipped:N0} private / unavailable entries. ") : "") + (session.HasMore ? L.T("Load next or Load all to continue.") : L.T("Playlist import finished.")));
         BusyChanged(); return page.Tracks;
     }
     private async void LoadNext_Click(object sender, RoutedEventArgs e)
@@ -368,23 +393,23 @@ public partial class MainWindow : Window
     {
         if (batch != null) batch.NavigationVersion ??= _navigationVersion;
         var list = tracks.ToList(); foreach (var track in list) track.DownloadStatus = "Waiting";
-        _downloads.Enqueue(list, batch); BusyChanged(); SetStatus($"{_downloads.Outstanding:N0} downloads queued. You can keep using the player.");
+        _downloads.Enqueue(list, batch); BusyChanged(); SetStatus(L.F($"{_downloads.Outstanding:N0} downloads queued. You can keep using the player."));
     }
     private async void DownloadChanged(DownloadNotice notice)
     {
         notice.Track.DownloadStatus = notice.Status;
-        if (notice.Parent != null) notice.Parent.DownloadStatus = $"{notice.Parent.Chapters.Count(c => c.DownloadedChapter && c.LocalPath.Length > 0)}/{notice.Parent.Chapters.Count} songs saved";
+        if (notice.Parent != null) notice.Parent.DownloadStatus = L.F($"{notice.Parent.Chapters.Count(c => c.DownloadedChapter && c.LocalPath.Length > 0)}/{notice.Parent.Chapters.Count} songs saved");
         if (_closing) return;
-        SetStatus($"{_downloads.Outstanding:N0} remaining · {notice.Message}"); BusyChanged();
+        SetStatus(L.F($"{_downloads.Outstanding:N0} remaining · {notice.Message}")); BusyChanged();
         if (notice.StartPlayback && (notice.NavigationVersion == null || notice.NavigationVersion == _navigationVersion)) await PlayTrackAsync(notice.Track, automatic: true, chapterParent: notice.Parent, paused: _engine.IsPaused);
     }
     private void UrlMode_Changed(object sender, SelectionChangedEventArgs e) { if (_ready && UrlMode.SelectedItem is ComboBoxItem item) _settings.UrlMode = item.Content.ToString()!; }
     private void UrlBox_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { UrlGo_Click(sender, new()); e.Handled = true; } }
-    private void Cancel_Click(object sender, RoutedEventArgs e) { _navigationVersion++; _workCancel?.Cancel(); _playCancel?.Cancel(); CancelPrefetch(); _downloads.Cancel(); SetStatus("Cancelling… Saved tracks remain available."); }
+    private void Cancel_Click(object sender, RoutedEventArgs e) { _navigationVersion++; _workCancel?.Cancel(); _playCancel?.Cancel(); CancelPrefetch(); _downloads.Cancel(); SetStatus(L.T("Cancelling… Saved tracks remain available.")); }
     private async void Play_Click(object sender, RoutedEventArgs e)
     {
-        if (_engine.HasSource) { _engine.TogglePause(); if (_playCancel != null) _pauseAfterOpen = _engine.IsPaused; if (_current != null) { _current.State = _engine.IsPlaying ? "▶" : "Ⅱ"; if (_engine.IsPlaying) _ = SubmitWatchHistoryAsync(_current); } if (_chapterParent != null) _chapterParent.State = _current?.State ?? ""; CapturePlayback(checkpoint: true); SetStatus(_engine.IsPlaying ? "Playback resumed." : "Paused."); }
-        else if (_playCancel != null) { _pauseAfterOpen = !_pauseAfterOpen; SetStatus(_pauseAfterOpen ? "Will open paused." : "Will play when ready."); }
+        if (_engine.HasSource) { _engine.TogglePause(); if (_playCancel != null) _pauseAfterOpen = _engine.IsPaused; if (_current != null) { _current.State = _engine.IsPlaying ? "▶" : "Ⅱ"; if (_engine.IsPlaying) _ = SubmitWatchHistoryAsync(_current); } if (_chapterParent != null) _chapterParent.State = _current?.State ?? ""; CapturePlayback(checkpoint: true); SetStatus(_engine.IsPlaying ? L.T("Playback resumed.") : L.T("Paused.")); }
+        else if (_playCancel != null) { _pauseAfterOpen = !_pauseAfterOpen; SetStatus(_pauseAfterOpen ? L.T("Will open paused.") : L.T("Will play when ready.")); }
         else if (_pendingResume != null) await RestoreLastPlaybackAsync(paused: false);
         else if (Playlist.SelectedItem is Track selected) await PlayRequestedAsync(selected);
         else if (QueueCursor != null) await PlayRequestedAsync(QueueCursor);
@@ -401,9 +426,9 @@ public partial class MainWindow : Window
         await PlayRequestedAsync(previous, false);
     }
     private void Repeat_Click(object sender, RoutedEventArgs e) { CancelPrefetch(); _settings.Repeat = _settings.Repeat switch { "Off" => "All", "All" => "One", _ => "Off" }; UpdateModes(); }
-    private void Shuffle_Click(object sender, RoutedEventArgs e) { CancelPrefetch(); _settings.Shuffle = !_settings.Shuffle; _order.Reset(QueueCursor); UpdateModes(); SetStatus("Shuffle " + (_settings.Shuffle ? "enabled." : "disabled.")); }
-    private void Freeze_Click(object sender, RoutedEventArgs e) { _frozen = !_frozen; FreezeButton.Content = _frozen ? "Resume" : "Freeze"; }
-    private void Bypass_Click(object sender, RoutedEventArgs e) { _bypass = !_bypass; ConfigureAudio(); UpdateModes(); SetStatus(_bypass ? "A/B: original signal. EQ, sound effects, speed and pitch bypassed." : "A/B: your sound setup restored."); }
+    private void Shuffle_Click(object sender, RoutedEventArgs e) { CancelPrefetch(); _settings.Shuffle = !_settings.Shuffle; _order.Reset(QueueCursor); UpdateModes(); SetStatus(L.T("Shuffle ") + (_settings.Shuffle ? L.T("enabled.") : L.T("disabled."))); }
+    private void Freeze_Click(object sender, RoutedEventArgs e) { _frozen = !_frozen; FreezeButton.Content = _frozen ? L.T("Resume") : L.T("Freeze"); }
+    private void Bypass_Click(object sender, RoutedEventArgs e) { _bypass = !_bypass; ConfigureAudio(); UpdateModes(); SetStatus(_bypass ? L.T("A/B: original signal. EQ, sound effects, speed and pitch bypassed.") : L.T("A/B: your sound setup restored.")); }
     private void DefaultEq_Click(object sender, RoutedEventArgs e)
     {
         _presetLoading = true;
@@ -411,14 +436,14 @@ public partial class MainWindow : Window
         PresetBox.SelectedItem = "Flat"; _settings.Preset = "Flat";
         PreampSlider.Value = 0; WidthSlider.Value = 1; SafeGain.IsChecked = true; _bypass = false;
         _settings.Sound = new(); SyncSoundControls();
-        _presetLoading = false; ConfigureAudio(); UpdateModes(); SetStatus("All sound defaults restored. Volume stays at your chosen level.");
+        _presetLoading = false; ConfigureAudio(); UpdateModes(); SetStatus(L.T("All sound defaults restored. Volume stays at your chosen level."));
     }
     private void Slider_Reset(object sender, MouseButtonEventArgs e)
     { if (sender is Slider slider) slider.Value = ReferenceEquals(slider, WidthSlider) ? 1 : ReferenceEquals(slider, VolumeSlider) ? .65 : 0; }
     private void Eq_Changed(object sender, RoutedEventArgs e) { if (_ready && !_presetLoading) { MarkSoundCustom(); ConfigureAudio(); } }
     private void Eq_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => Eq_Changed(sender, e);
     private void Volume_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) { if (_ready) ConfigureAudio(); }
-    private void Mute_Click(object sender, RoutedEventArgs e) { if (VolumeSlider.Value > 0) { _unmuted = VolumeSlider.Value; VolumeSlider.Value = 0; MuteButton.Content = "MUTE"; } else { VolumeSlider.Value = _unmuted; MuteButton.Content = "VOL"; } }
+    private void Mute_Click(object sender, RoutedEventArgs e) { if (VolumeSlider.Value > 0) { _unmuted = VolumeSlider.Value; VolumeSlider.Value = 0; MuteButton.Content = L.T("MUTE"); } else { VolumeSlider.Value = _unmuted; MuteButton.Content = L.T("VOL"); } }
     private void Preset_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (!_ready || _presetLoading || PresetBox.SelectedItem is not string name) return;
@@ -426,12 +451,12 @@ public partial class MainWindow : Window
     }
     private void SaveEq_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog { Filter = "Sound preset|*.json", FileName = "WaveDeck-sound.json" };
+        var dialog = new SaveFileDialog { Filter = L.T("Sound preset|*.json"), FileName = "WaveDeck-sound.json" };
         if (dialog.ShowDialog(this) == true) try { SoundPreset.Save(dialog.FileName, _settings); } catch (Exception ex) { Report(ex); }
     }
     private void LoadEq_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog { Filter = "Sound preset|*.json" }; if (dialog.ShowDialog(this) != true) return;
+        var dialog = new OpenFileDialog { Filter = L.T("Sound preset|*.json") }; if (dialog.ShowDialog(this) != true) return;
         try
         {
             var preset = SoundPreset.Load(dialog.FileName);
@@ -452,14 +477,14 @@ public partial class MainWindow : Window
         using var cancel = new CancellationTokenSource(); _seekCancel = cancel;
         try { await _engine.SeekAsync(seconds, EqParameters.FromSettings(_settings, _bypass), cancel.Token, () => EqParameters.FromSettings(_settings, _bypass)); }
         catch (OperationCanceledException) { }
-        catch (Exception ex) { _storage.Log(ex); Ding(); SetStatus("Seek failed: " + AudioError.SafeMessage(ex.Message)); }
+        catch (Exception ex) { _storage.Log(ex); Ding(); SetStatus(L.T("Seek failed: ") + AudioError.SafeMessage(ex.Message)); }
         finally { if (ReferenceEquals(_seekCancel, cancel)) _seekCancel = null; }
     }
     private async void Playlist_DoubleClick(object sender, MouseButtonEventArgs e) { if (e.OriginalSource is DependencyObject source && ItemsControl.ContainerFromElement(Playlist, source) is ListViewItem { Content: Track track }) await PlayRequestedAsync(track); }
     private async void PlaySelected_Click(object sender, RoutedEventArgs e) { if (Playlist.SelectedItem is Track track) await PlayRequestedAsync(track); }
     private void Playlist_KeyDown(object sender, KeyEventArgs e) { if (e.Key == Key.Delete) { Remove_Click(sender, new()); e.Handled = true; } else if (e.Key == Key.Enter) { PlaySelected_Click(sender, new()); e.Handled = true; } }
     private void Remove_Click(object sender, RoutedEventArgs e) { foreach (var track in Playlist.SelectedItems.Cast<Track>().ToList()) _queue.Remove(track); }
-    private void Clear_Click(object sender, RoutedEventArgs e) { StopPlayback(); _workCancel?.Cancel(); _downloads.Cancel(); _playlistSession = null; PaginationBar.Visibility = Visibility.Collapsed; _queue.Clear(); _current = null; _chapterParent = null; _pendingResume = null; _settings.LastPlayback = null; CapturePlayback(checkpoint: true); RefreshChapterUi(); _history.Clear(); _order.Reset(); TrackTitle.Text = "Your next favorite frequency."; TrackArtist.Text = "Add music or paste a URL to begin"; }
+    private void Clear_Click(object sender, RoutedEventArgs e) { StopPlayback(); _workCancel?.Cancel(); _downloads.Cancel(); _playlistSession = null; PaginationBar.Visibility = Visibility.Collapsed; _queue.Clear(); _current = null; _chapterParent = null; _pendingResume = null; _settings.LastPlayback = null; CapturePlayback(checkpoint: true); RefreshChapterUi(); _history.Clear(); _order.Reset(); TrackTitle.Text = L.T("Your next favorite frequency."); TrackArtist.Text = L.T("Add music or paste a URL to begin"); }
     private void MoveUp_Click(object sender, RoutedEventArgs e) { if (Playlist.SelectedItem is Track t && _queue.IndexOf(t) > 0) _queue.Move(_queue.IndexOf(t), _queue.IndexOf(t) - 1); }
     private void MoveDown_Click(object sender, RoutedEventArgs e) { if (Playlist.SelectedItem is Track t && _queue.IndexOf(t) < _queue.Count - 1) _queue.Move(_queue.IndexOf(t), _queue.IndexOf(t) + 1); }
     private void Sort_Click(object sender, RoutedEventArgs e) { var sorted = _queue.OrderBy(t => t.Title, StringComparer.CurrentCultureIgnoreCase).ToArray(); _queue.Clear(); _queue.AddRange(sorted); }
@@ -468,22 +493,22 @@ public partial class MainWindow : Window
     private void ListTools_Click(object sender, RoutedEventArgs e) { if (sender is Button b) { b.ContextMenu.PlacementTarget = b; b.ContextMenu.Placement = PlacementMode.Bottom; b.ContextMenu.IsOpen = true; } }
     private void SaveList_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new SaveFileDialog { FileName = "My playlist.wavedeck", Filter = "WaveDeck playlist|*.wavedeck|M3U playlist|*.m3u8" };
-        if (dialog.ShowDialog(this) == true) try { Storage.SavePlaylist(dialog.FileName, _queue); SetStatus("Playlist saved."); } catch (Exception ex) { Report(ex); }
+        var dialog = new SaveFileDialog { FileName = "My playlist.wavedeck", Filter = L.T("WaveDeck playlist|*.wavedeck|M3U playlist|*.m3u8") };
+        if (dialog.ShowDialog(this) == true) try { Storage.SavePlaylist(dialog.FileName, _queue); SetStatus(L.T("Playlist saved.")); } catch (Exception ex) { Report(ex); }
     }
-    private async void OpenList_Click(object sender, RoutedEventArgs e) { var dialog = new OpenFileDialog { Filter = "Music playlists|*.wavedeck;*.m3u;*.m3u8;*.json" }; if (dialog.ShowDialog(this) == true) await AddPathsAsync([dialog.FileName]); }
+    private async void OpenList_Click(object sender, RoutedEventArgs e) { var dialog = new OpenFileDialog { Filter = L.T("Music playlists|*.wavedeck;*.m3u;*.m3u8;*.json") }; if (dialog.ShowDialog(this) == true) await AddPathsAsync([dialog.FileName]); }
     private void DownloadSelected_Click(object sender, RoutedEventArgs e)
     {
         var tracks = Playlist.SelectedItems.Cast<Track>().Where(t => t.Url.Length > 0).ToList();
-        if (tracks.Count == 0) { SetStatus("Select an online track to download."); return; }
+        if (tracks.Count == 0) { SetStatus(L.T("Select an online track to download.")); return; }
         QueueDownloads(tracks);
     }
     private void DownloadAll_Click(object sender, RoutedEventArgs e) => QueueDownloads(_queue.Where(t => t.Url.Length > 0));
     private void OpenSource_Click(object sender, RoutedEventArgs e) { if (Playlist.SelectedItem is Track track) { if (track.Url.Length > 0) OpenExternal(UrlService.Validate(track.Url).AbsoluteUri); else if (File.Exists(track.LocalPath)) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true, ArgumentList = { "/select,", track.LocalPath } }); } }
     private void OpenExternal(string uri) { try { Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true }); } catch (Exception ex) { Report(ex); } }
     private void DownloadsFolder_Click(object sender, RoutedEventArgs e) { try { Directory.CreateDirectory(_settings.DownloadFolder); Process.Start(new ProcessStartInfo(_settings.DownloadFolder) { UseShellExecute = true }); } catch (Exception ex) { Report(ex); } }
-    private void Settings_Click(object sender, RoutedEventArgs e) { var window = new SettingsWindow(_settings, _urls, _session) { Owner = this }; if (window.ShowDialog() == true) { CancelPrefetch(); SaveSettings(); if (!_settings.RememberPlayback) CapturePlayback(checkpoint: true); SetStatus("Settings saved."); } }
-    private void About_Click(object sender, RoutedEventArgs e) => MessageWindow.Show(this, $"WaveDeck {AppVersion.Current}\nClassic music, new frequencies.\n\nChoose keyboard / mouse playback shortcuts in Controls.\nCtrl+Left / Right: back / forward 10 seconds\nAlt+Left / Right: previous / next track\nCtrl+O: add files · Ctrl+F: search · Ctrl+L: URL\n\nDrag anywhere along a slider to move its knob.\nDouble-click a slider to restore its default.\nSongs are detected automatically at every video start.\nSong controls: previous / next / shuffle.\nRepeat One repeats the selected song.\nChaptered downloads save each song as a separate file.\n\nStream plays online. Download saves in the background.\nDownload & play saves first, then plays the saved file.\nLoad all continues pages up to your configured limit.\n\nAudio: NAudio · FFmpeg · yt-dlp · Deno", "About WaveDeck");
+    private void Settings_Click(object sender, RoutedEventArgs e) { var window = new SettingsWindow(_settings, _urls, _session) { Owner = this }; if (window.ShowDialog() == true) { CancelPrefetch(); SaveSettings(); if (!_settings.RememberPlayback) CapturePlayback(checkpoint: true); SetStatus(L.T("Settings saved.")); } }
+    private void About_Click(object sender, RoutedEventArgs e) => MessageWindow.Show(this, L.F($"WaveDeck {AppVersion.Current}\nClassic music, new frequencies.\n\nChoose keyboard / mouse playback shortcuts in Controls.\nCtrl+Left / Right: back / forward 10 seconds\nAlt+Left / Right: previous / next track\nCtrl+O: add files · Ctrl+F: search · Ctrl+L: URL\n\nDrag anywhere along a slider to move its knob.\nDouble-click a slider to restore its default.\nSongs are detected automatically at every video start.\nSong controls: previous / next / shuffle.\nRepeat One repeats the selected song.\nChaptered downloads save each song as a separate file.\n\nStream plays online. Download saves in the background.\nDownload & play saves first, then plays the saved file.\nLoad all continues pages up to your configured limit.\n\nAudio: NAudio · FFmpeg · yt-dlp · Deno"), L.T("About WaveDeck"));
     private void Header_Drag(object sender, MouseButtonEventArgs e)
     {
         _headerInputTrace?.Add($"header down clicks={e.ClickCount}, state={WindowState}, source={e.OriginalSource?.GetType().Name}, point={e.GetPosition(this)}, cursor={Validation.DesktopInput.CursorPosition()}");
@@ -525,7 +550,7 @@ public partial class MainWindow : Window
         CapturePlayback();
         _settings.Queue = _settings.RememberQueue ? _queue.ToList() : [];
         if (WindowState == WindowState.Normal) { _settings.WindowWidth = Width; _settings.WindowHeight = Height; }
-        try { _storage.Save(_settings); } catch (Exception ex) { _storage.Log(ex); SetStatus("Preferences could not be saved: " + ex.Message); }
+        try { _storage.Save(_settings); } catch (Exception ex) { _storage.Log(ex); SetStatus(L.T("Preferences could not be saved: ") + ex.Message); }
     }
     private async void Window_Closing(object? sender, CancelEventArgs e)
     {

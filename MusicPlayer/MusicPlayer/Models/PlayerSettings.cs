@@ -20,6 +20,7 @@ public class PlayerSettings
     public int PlaylistMaximum { get; set; } = 10000;
     public int DownloadDelaySeconds { get; set; } = 5;
     public string Theme { get; set; } = "Modern";
+    public string Language { get; set; } = "en";
     public bool Shuffle { get; set; }
     public string Repeat { get; set; } = "Off";
     public bool RememberQueue { get; set; } = true;
@@ -54,6 +55,7 @@ public class PlayerSettings
         PlaylistMaximum = Math.Clamp(PlaylistMaximum, PlaylistLimit, 50000);
         DownloadDelaySeconds = Math.Clamp(DownloadDelaySeconds, 0, 30);
         if (!new[] { "Modern", "OldSchool", "Retro" }.Contains(Theme)) Theme = "Modern";
+        Language = Services.Localization.Normalize(Language);
         if (!new[] { "mp3", "m4a", "flac", "wav", "opus" }.Contains(DownloadFormat)) DownloadFormat = "mp3";
         if (!new[] { "128", "192", "256", "320" }.Contains(DownloadQuality)) DownloadQuality = "192";
         if (!new[] { "Stream", "Download", "Download & play" }.Contains(UrlMode)) UrlMode = "Stream";

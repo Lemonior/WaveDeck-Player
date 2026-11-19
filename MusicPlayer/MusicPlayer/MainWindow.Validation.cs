@@ -177,6 +177,7 @@ public partial class MainWindow
             await ValidateDesktopAdjustmentsAsync(storage, report);
             await ValidateSoundV2Async(storage, report);
             await ValidateReactiveVisualsAsync(storage, report);
+            await ValidateLocalizationUiAsync(storage, report);
             var watch = System.Diagnostics.Stopwatch.StartNew();
             _queue.AddRange(Enumerable.Range(1, 10000).Select(i => new Track { Title = "Large playlist track " + i, Kind = "YOUTUBE", Url = "https://www.youtube.com/watch?v=" + i, Duration = 180 }));
             SearchBox.Text = "track 9999"; if (_view.Cast<object>().Count() != 1) throw new Exception("Large playlist search failed."); SearchBox.Text = "";

@@ -46,6 +46,8 @@ The song selector appears above the playlist. The second sub-control row contain
 
 ## Controls and appearance
 
+**Settings → Language**, directly below Theme, offers **English** and **Português (Brasil)** on Windows and Linux. Save settings to apply the language immediately and remember it for the next launch. Cancel keeps the current language. The interface, menus, tooltips and player messages are translated; media titles, paths, keyboard shortcuts and stored playback options retain their values. Output produced directly by external media tools may stay in its original language.
+
 - **Modern:** textured slate surfaces, brushed controls and amber accents. **OldSchool:** dark stone, double gold frames, warm serif headings and matte controls inspired by the user's current brown RuneScape 3 screenshots. **Retro:** textured violet surfaces, scanlines and neon accents. All artwork is original WPF/vector code. Settings previews themes; Cancel restores the previous one.
 - Drag anywhere across a slider's enlarged area to move its knob, including after clicking directly on the rail. Horizontal knobs fit inside their controls. **Default** restores flat EQ, 0 dB preamp, original stereo width, enabled EQ/safe gain and exits DRY; volume stays unchanged. Double-click a band/preamp to reset, width for original stereo, volume for 65%. Right-click the preset selector to save/load presets.
 - Volume uses a perceptual curve: 0% is silent, 100% full gain and 50% approximately -10 dB. Loudness also depends on the recording, EQ and speakers.
@@ -76,6 +78,8 @@ Connect explicitly imports an available session from a supported default-browser
 Browser security settings do not need to be disabled. Default-browser connection leaves that browser open; its temporary export is filtered and deleted. Disconnect deletes WaveDeck's stored session. Connection/disconnection take effect immediately. Real Google login and restricted-video access require an interactive account check.
 
 This uses a browser session: [yt-dlp no longer supports YouTube OAuth](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth). Restricted videos still require access on the account; YouTube can expire or reject sessions. Public videos usually need no connection. **Update YouTube tool** updates yt-dlp. Spotify integration is removed.
+
+The app-style Google consent screen seen in other desktop apps is [Google OAuth](https://developers.google.com/identity/protocols/oauth2/native-app). It requires a registered Google Cloud desktop client and returns API authorization, which yt-dlp cannot use for YouTube media playback. WaveDeck currently uses the browser-session connection above; it does not request access to Gmail.
 
 Optional **Add played YouTube videos to my account's watch history** submits a watch request after actual playback begins, including continued playback across a video's songs. Import, prefetch and download alone do not mark videos watched. YouTube controls whether this is accepted, and the account's history must be enabled. It records the parent video, not separate chapter songs. Real account access/history needs an interactive check.
 

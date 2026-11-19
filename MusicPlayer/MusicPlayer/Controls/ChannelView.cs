@@ -9,7 +9,8 @@ namespace MusicPlayer.Controls;
 public sealed class ChannelView : FrameworkElement
 {
     public string Mode { get; set; } = "Waveform";
-    public string Caption { get; set; } = "CHANNEL A · WAVEFORM";
+    public static readonly DependencyProperty CaptionProperty = DependencyProperty.Register(nameof(Caption), typeof(string), typeof(ChannelView), new FrameworkPropertyMetadata("CHANNEL A · WAVEFORM", FrameworkPropertyMetadataOptions.AffectsRender));
+    public string Caption { get => (string)GetValue(CaptionProperty); set => SetValue(CaptionProperty, value); }
     public static readonly DependencyProperty AccentProperty = DependencyProperty.Register(nameof(Accent), typeof(Color), typeof(ChannelView), new FrameworkPropertyMetadata(Color.FromRgb(185, 206, 116), FrameworkPropertyMetadataOptions.AffectsRender));
     public Color Accent { get => (Color)GetValue(AccentProperty); set => SetValue(AccentProperty, value); }
     public AudioSnapshot? Snapshot { get; set; }

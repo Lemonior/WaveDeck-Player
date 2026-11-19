@@ -26,14 +26,15 @@ public partial class MainWindow
     private void ConfigureGlobalKeys()
     {
         var conflicts = _globalKeys?.Configure(_settings);
-        if (conflicts?.Count > 0) SetStatus("These background keys are already in use: " + string.Join(", ", conflicts) + ". Choose another shortcut in Controls.");
+        if (conflicts?.Count > 0) SetStatus(L.T("These background keys are already in use: ") + string.Join(", ", conflicts) + L.T(". Choose another shortcut in Controls."));
     }
     private void SetUpDesktopControls()
     {
         var info = new TaskbarItemInfo();
-        var previous = new ThumbButtonInfo { Description = "Previous track", ImageSource = DeckGlyph.TaskbarImage("Previous") }; previous.Click += (_, _) => Previous_Click(this, new());
+        var previous = new ThumbButtonInfo { Description = L.T("Previous track"), ImageSource = DeckGlyph.TaskbarImage("Previous") }; previous.Click += (_, _) => Previous_Click(this, new());
         _taskToggle = new() { Description = "Play / pause", ImageSource = _taskPlay }; _taskToggle.Click += (_, _) => Play_Click(this, new());
-        var next = new ThumbButtonInfo { Description = "Next track", ImageSource = DeckGlyph.TaskbarImage("Next") }; next.Click += (_, _) => Next_Click(this, new());
+        var next = new ThumbButtonInfo { Description = L.T("Next track"), ImageSource = DeckGlyph.TaskbarImage("Next") }; next.Click += (_, _) => Next_Click(this, new());
+        UiText.Bind(previous, ThumbButtonInfo.DescriptionProperty, "Previous track"); UiText.Bind(next, ThumbButtonInfo.DescriptionProperty, "Next track");
         info.ThumbButtonInfos.Add(previous); info.ThumbButtonInfos.Add(_taskToggle); info.ThumbButtonInfos.Add(next); TaskbarItemInfo = info;
         SourceInitialized += (_, _) =>
         {
@@ -67,18 +68,18 @@ public partial class MainWindow
     private void RefreshDesktopControls()
     {
         PlayGlyph.Kind = _engine.IsPlaying ? "Pause" : "Play";
-        if (_taskToggle != null) { _taskToggle.ImageSource = _engine.IsPlaying ? _taskPause : _taskPlay; _taskToggle.Description = _engine.IsPlaying ? "Pause" : "Play"; }
+        if (_taskToggle != null) { _taskToggle.ImageSource = _engine.IsPlaying ? _taskPause : _taskPlay; _taskToggle.Description = L.T(_engine.IsPlaying ? "Pause" : "Play"); }
         if (TaskbarItemInfo != null) TaskbarItemInfo.Description = (_current?.Title ?? "WaveDeck") + " — WaveDeck";
-        HeaderTitle.Text = QueueCursor?.Title ?? "Your next favorite frequency.";
+        HeaderTitle.Text = QueueCursor?.Title ?? L.T("Your next favorite frequency.");
         HeaderTitle.ToolTip = HeaderTitle.Text;
         ForwardButton.IsEnabled = RewindButton.IsEnabled = _engine.HasSource && _current?.Duration > 0;
-        PlayButton.ToolTip = $"Play / pause ({_settings.PlayPauseShortcut})";
+        PlayButton.ToolTip = L.F($"Play / pause ({_settings.PlayPauseShortcut})");
     }
     private async void Rewind_Click(object sender, RoutedEventArgs e) => await SeekByAsync(-10);
     private async void Forward_Click(object sender, RoutedEventArgs e) => await SeekByAsync(10);
     private Task SeekByAsync(double seconds) => SeekToAsync(Math.Clamp(_engine.Position + seconds, 0, Math.Max(0, (_current?.Duration ?? 0) - .1)));
     private void Controls_Click(object sender, RoutedEventArgs e)
-    { if (new ControlsWindow(_settings) { Owner = this }.ShowDialog() == true) { SaveSettings(); SetStatus("Playback controls saved."); ConfigureGlobalKeys(); } }
+    { if (new ControlsWindow(_settings) { Owner = this }.ShowDialog() == true) { SaveSettings(); SetStatus(L.T("Playback controls saved.")); ConfigureGlobalKeys(); } }
     private bool MatchesPlayPause(Key key, ModifierKeys modifiers) => _settings.PlayPauseShortcut switch
     { "Ctrl+Space" => key == Key.Space && modifiers == ModifierKeys.Control, "P" => key == Key.P && modifiers == ModifierKeys.None, _ => key == Key.Space && modifiers == ModifierKeys.None };
     private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -98,7 +99,7 @@ public partial class MainWindow
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) when (!compatible)
         {
-            _storage.Log(ex); Ding(); SetStatus("Retrying " + track.Title + "…"); await Task.Delay(120, token);
+            _storage.Log(ex); Ding(); SetStatus(L.T("Retrying ") + track.Title + "…"); await Task.Delay(120, token);
             return await PrepareTrackAsync(track, token, offset, true);
         }
     }

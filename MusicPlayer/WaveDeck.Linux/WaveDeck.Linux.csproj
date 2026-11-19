@@ -10,6 +10,8 @@
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="..\MusicPlayer\Localization\pt-BR.json" LogicalName="WaveDeck.Localization.pt-BR.json" />
+    <Compile Include="..\MusicPlayer\Services\Localization.cs" Link="Shared\Services\Localization.cs" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.3" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.3" />
     <PackageReference Include="NAudio.Core" Version="2.2.1" />

@@ -10,12 +10,13 @@ public partial class MainWindow
 {
     private readonly Dictionary<string, (Knob Knob, Func<SoundProfile, double> Get)> _soundKnobs = [];
     private SoundDetailsWindow? _soundDetails;
+    private const string KnobHelp = "\nDrag upward / downward, use the wheel or arrow keys. Shift-drag for fine control. Double-click or Home resets. Right-click for an exact value.";
     private void BuildSoundControls()
     {
         void Add(Panel panel, string id, string caption, double min, double max, double neutral, string unit, string explanation, Func<SoundProfile, double> get, Func<SoundProfile, double, SoundProfile> set, bool logarithmic = false, double step = .01)
         {
-            var knob = new Knob { Caption = caption, Minimum = min, Maximum = max, DefaultValue = neutral, Unit = unit, Logarithmic = logarithmic, SmallChange = step, Value = get(_settings.Sound), Margin = new(1, 1, 1, 0), ToolTip = explanation + "\nDrag upward / downward, use the wheel or arrow keys. Shift-drag for fine control. Double-click or Home resets. Right-click for an exact value." };
-            System.Windows.Automation.AutomationProperties.SetName(knob, caption);
+            var knob = new Knob { Caption = caption, Minimum = min, Maximum = max, DefaultValue = neutral, Unit = unit, Logarithmic = logarithmic, SmallChange = step, Value = get(_settings.Sound), Margin = new(1, 1, 1, 0), Tag = explanation, ToolTip = L.T(explanation) + L.T(KnobHelp) };
+            System.Windows.Automation.AutomationProperties.SetName(knob, L.T(caption));
             knob.ValueChanged += (_, _) => { if (!_ready || _presetLoading) return; _settings.Sound = set(_settings.Sound, knob.Value).Normalize(); MarkSoundCustom(); ConfigureAudio(); _soundDetails?.Sync(); };
             panel.Children.Add(knob); _soundKnobs[id] = (knob, get);
         }
@@ -56,7 +57,7 @@ public partial class MainWindow
         PreampSlider.Value = 0; WidthSlider.Value = 1; SafeGain.IsChecked = true; _bypass = false;
         _settings.Preset = name; PresetBox.SelectedItem = name;
         SyncSoundControls(); _presetLoading = false; ConfigureAudio(); UpdateModes();
-        SetStatus(name + " complete preset applied to Equalizer, Knobs and Effects. Volume stays at your chosen level.");
+        SetStatus(name + L.T(" complete preset applied to Equalizer, Knobs and Effects. Volume stays at your chosen level."));
     }
     private void SetEqualizerBands(float[] gains)
     {
@@ -73,7 +74,7 @@ public partial class MainWindow
             SyncSoundControls();
         }
         _presetLoading = false; MarkSoundCustom(); ConfigureAudio();
-        SetStatus(name + " preset applied to " + section + " only.");
+        SetStatus(L.T(name) + L.T(" preset applied to ") + L.T(section.ToString()) + L.T(" only."));
     }
     private void ResetSoundSection(SoundSection section)
     {
@@ -81,7 +82,7 @@ public partial class MainWindow
         if (section == SoundSection.Equalizer) { SetEqualizerBands(new float[10]); PreampSlider.Value = 0; WidthSlider.Value = 1; }
         else { _settings.Sound = SoundPresets.ApplySection(_settings.Sound, new(), section); SyncSoundControls(); }
         _presetLoading = false; MarkSoundCustom(); ConfigureAudio();
-        SetStatus(section + " reset. The other tabs and volume stay at your chosen settings.");
+        SetStatus(L.T(section.ToString()) + L.T(" reset. The other tabs and volume stay at your chosen settings."));
     }
     private void SoundReset_Click(object sender, RoutedEventArgs e)
     {
@@ -92,7 +93,7 @@ public partial class MainWindow
         if (sender is not Button { Tag: string tag } button || !Enum.TryParse<SoundSection>(tag, out var section)) return;
         var menu = new ContextMenu();
         var names = section == SoundSection.Equalizer ? EqualizerPresets.All.Keys : (section == SoundSection.Knobs ? SoundPresets.Knobs.Keys : SoundPresets.Effects.Keys);
-        foreach (var name in names) { var item = new MenuItem { Header = name }; item.Click += (_, _) => ApplySectionPreset(section, name); menu.Items.Add(item); }
+        foreach (var name in names) { var item = new MenuItem { Header = L.T(name) }; item.Click += (_, _) => ApplySectionPreset(section, name); menu.Items.Add(item); }
         button.ContextMenu = menu; menu.PlacementTarget = button; menu.IsOpen = true;
     }
     private void SoundDetails_Click(object sender, RoutedEventArgs e)

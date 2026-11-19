@@ -25,7 +25,8 @@ public sealed class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var window = new MainWindow(new Storage(Program.DataRoot())); desktop.MainWindow = window;
+            var storage = new Storage(Program.DataRoot()); L.Apply(storage.Load().Language);
+            var window = new MainWindow(storage); desktop.MainWindow = window;
             if (Program.Arguments.Contains("--smoke-test")) window.Opened += async (_, _) => { var result = await window.ValidateAsync(); desktop.Shutdown(result); };
         }
         base.OnFrameworkInitializationCompleted();

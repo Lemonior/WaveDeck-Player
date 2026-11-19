@@ -57,9 +57,9 @@ public partial class MainWindow
         {
             _pendingResume = null; parent.UseChapters = chapterIntent;
             if (chapterIntent && song == null) StartChapterDetection(parent);
-            CapturePlayback(checkpoint: true); SetStatus(paused ? "Ready to resume where you left off. Press Play." : "Playback resumed where you left off.");
+            CapturePlayback(checkpoint: true); SetStatus(paused ? L.T("Ready to resume where you left off. Press Play.") : L.T("Playback resumed where you left off."));
         }
-        else { parent.UseChapters = chapterIntent; SetStatus("Your last song is saved. Press Play to retry, or choose another track."); }
+        else { parent.UseChapters = chapterIntent; SetStatus(L.T("Your last song is saved. Press Play to retry, or choose another track.")); }
     }
     public async Task OpenExternalFilesAsync(IEnumerable<string> paths)
     {

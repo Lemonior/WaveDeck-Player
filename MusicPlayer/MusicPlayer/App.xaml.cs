@@ -55,13 +55,15 @@ public partial class App : Application
             var visualTest = e.Args.Contains("--visual-test");
             var soundTest = e.Args.Contains("--sound-test");
             var layoutTest = e.Args.Contains("--layout-test");
-            if (!e.Args.Contains("--smoke-test") && !visualTest && !soundTest && !layoutTest)
+            var languageTest = e.Args.Contains("--localization-test");
+            if (!e.Args.Contains("--smoke-test") && !visualTest && !soundTest && !layoutTest && !languageTest)
             {
                 _instance = new(storage.Root);
                 if (!_instance.IsPrimary) { await _instance.ForwardAsync(files); Shutdown(); return; }
             }
             DispatcherUnhandledException += (_, args) => { storage.Log(args.Exception); MessageWindow.Show(MainWindow, AudioError.SafeMessage(args.Exception.Message)); args.Handled = true; };
             var window = new MainWindow(storage); MainWindow = window; window.Show();
+            if (languageTest) { await window.ValidateLocalizationOnlyAsync(storage); Shutdown(); return; }
             if (layoutTest) { await window.ValidateLayoutAsync(storage); Shutdown(); return; }
             if (soundTest) { await window.ValidateSoundAsync(storage); Shutdown(); return; }
             if (visualTest) { await window.ValidateVisualsAsync(storage); Shutdown(); return; }
@@ -72,7 +74,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            if ((e.Args.Contains("--smoke-test") || e.Args.Contains("--visual-test") || e.Args.Contains("--sound-test") || e.Args.Contains("--layout-test")) && root != null)
+            if ((e.Args.Contains("--smoke-test") || e.Args.Contains("--visual-test") || e.Args.Contains("--sound-test") || e.Args.Contains("--layout-test") || e.Args.Contains("--localization-test")) && root != null)
             { Directory.CreateDirectory(root); File.WriteAllText(Path.Combine(root, "ui-results.json"), System.Text.Json.JsonSerializer.Serialize(new { passed = false, error = ex.ToString() }, Storage.JsonOptions)); }
             else MessageWindow.Show(null, AudioError.SafeMessage(ex.Message), "WaveDeck startup error");
             Shutdown(1);

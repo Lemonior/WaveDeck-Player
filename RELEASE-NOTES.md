@@ -1,11 +1,12 @@
-# WaveDeck 1.0.0
+# WaveDeck 1.0.1
 
-First GitHub release of WaveDeck, a portable desktop music player.
+English and Brazilian Portuguese interface support.
 
-- Windows x64: WPF player, live visualizers, equalizer/effects, playlists, URL streaming and downloads, chapter playback, and desktop/media controls.
-- Linux x64: separate Avalonia player with shared playlist, URL, downloader, chapter and equalizer code. The latest Windows effects tabs and Channel C modes are not included in the Linux interface.
-- Both ZIPs include the .NET runtime and bundled tool licenses. Linux still requires FFmpeg and desktop/audio dependencies; run `bash install-dependencies.sh`, then `bash launch.sh`.
+- Added **Language** directly below **Theme** in Settings: **English** and **Português (Brasil)**.
+- Saving applies the language immediately and remembers it for the next launch. Cancel leaves the current language unchanged.
+- Translated the Windows and Linux controls, settings, menus, tooltips, playback/download messages and account-connection instructions. Song titles, file paths, saved playback options and sound settings retain their original values.
+- Google/YouTube connection continues to use the existing external-browser session flow. Official Google OAuth sign-in requires a registered app and does not authenticate yt-dlp playback; this release does not add OAuth or Gmail access.
 
-Download `WaveDeck-1.0.0-win-x64.zip` for Windows or `WaveDeck-1.0.0-linux-x64.zip` for Linux. Extract the complete folder before launching. `SHA256SUMS.txt` contains the ZIP checksums. Android is planned; no Android build is included.
+Download `WaveDeck-1.0.1-win-x64.zip` for Windows or `WaveDeck-1.0.1-linux-x64.zip` for Linux. Extract the complete folder before launching. Both ZIPs include the .NET runtime; Linux requires the dependencies described in its README. ZIP checksums are in `SHA256SUMS.txt`.
 
-Account sign-in/history, audible listening quality, and behavior on other machines require interactive validation. Earlier validation records are in `Context/`; they describe the builds and environments recorded there.
+Account sign-in/history, audible listening quality, and behavior on other machines require interactive validation. Validation records in `Context/` identify their tested build and environment.

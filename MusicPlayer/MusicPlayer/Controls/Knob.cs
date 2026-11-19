@@ -9,7 +9,8 @@ namespace MusicPlayer.Controls;
 
 public sealed class Knob : RangeBase
 {
-    public string Caption { get; set; } = "Knob";
+    public static readonly DependencyProperty CaptionProperty = DependencyProperty.Register(nameof(Caption), typeof(string), typeof(Knob), new FrameworkPropertyMetadata("Knob", FrameworkPropertyMetadataOptions.AffectsRender));
+    public string Caption { get => (string)GetValue(CaptionProperty); set => SetValue(CaptionProperty, value); }
     public string Unit { get; set; } = "%";
     public double DefaultValue { get; set; }
     public bool Logarithmic { get; set; }
@@ -22,10 +23,11 @@ public sealed class Knob : RangeBase
         SetResourceReference(ForegroundProperty, "Gold"); SetResourceReference(BackgroundProperty, "Chrome");
         ValueChanged += (_, _) => InvalidateVisual();
         var menu = new System.Windows.Controls.ContextMenu();
-        var precise = new System.Windows.Controls.MenuItem { Header = "Set exact value…" };
+        var precise = new System.Windows.Controls.MenuItem { Header = L.T("Set exact value…") };
         precise.Click += (_, _) => { var value = ValueWindow.Edit(Window.GetWindow(this), Caption, Value, Minimum, Maximum); if (value != null) SetCurrentValue(ValueProperty, value.Value); };
-        var reset = new System.Windows.Controls.MenuItem { Header = "Reset this knob" }; reset.Click += (_, _) => Reset();
+        var reset = new System.Windows.Controls.MenuItem { Header = L.T("Reset this knob") }; reset.Click += (_, _) => Reset();
         menu.Items.Add(precise); menu.Items.Add(reset); ContextMenu = menu;
+        UiText.SetHeader(precise, "Set exact value…"); UiText.SetHeader(reset, "Reset this knob");
     }
     private double Fraction => Logarithmic ? Math.Log(Value / Minimum) / Math.Log(Maximum / Minimum) : (Value - Minimum) / (Maximum - Minimum);
     internal void MoveFraction(double fraction)
@@ -37,8 +39,8 @@ public sealed class Knob : RangeBase
     public void Reset() => SetCurrentValue(ValueProperty, DefaultValue);
     public string ValueLabel => Unit switch
     {
-        "%" => $"{Value * 100:0}%", "dB" => $"{Value:+0.0;-0.0;0} dB", "pan" => Value == 0 ? "Center" : $"{Math.Abs(Value) * 100:0}% {(Value < 0 ? "L" : "R")}",
-        "Hz" => Value >= 20000 ? "Open" : Value >= 1000 ? $"{Value / 1000:0.0} kHz" : $"{Value:0} Hz",
+        "%" => $"{Value * 100:0}%", "dB" => $"{Value:+0.0;-0.0;0} dB", "pan" => Value == 0 ? L.T("Center") : $"{Math.Abs(Value) * 100:0}% {(Value < 0 ? "L" : "R")}",
+        "Hz" => Value >= 20000 ? L.T("Open") : Value >= 1000 ? $"{Value / 1000:0.0} kHz" : $"{Value:0} Hz",
         "x" => $"{Value:0.00}×", "st" => $"{Value:+0.0;-0.0;0} st", "ms" => $"{Value:0} ms", _ => $"{Value:0.00}"
     };
     protected override void OnRender(DrawingContext dc)
@@ -51,7 +53,7 @@ public sealed class Knob : RangeBase
             var formatted = new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 9, brush, dpi);
             dc.DrawText(formatted, new Point((ActualWidth - formatted.Width) / 2, y));
         }
-        Text(Caption, 0, muted);
+        Text(L.T(Caption), 0, muted);
         var radius = Math.Max(8, Math.Min(18, (ActualHeight - 28) / 2)); var center = new Point(ActualWidth / 2, 14 + radius);
         dc.DrawEllipse(Background, new Pen(muted, IsKeyboardFocused ? 1.6 : 1), center, radius, radius);
         var angle = (-135 + Math.Clamp(Fraction, 0, 1) * 270) * Math.PI / 180;

@@ -27,11 +27,11 @@ public partial class MainWindow
                 if (!ReferenceEquals(ChapterSelector.ItemsSource, _chapterParent!.Chapters)) ChapterSelector.ItemsSource = _chapterParent.Chapters;
                 ChapterSelector.SelectedItem = _current;
                 ChapterAlbum.Text = _chapterParent.Title;
-                ChapterPosition.Text = $"SONGS IN THIS VIDEO · {_chapterParent.Chapters.IndexOf(_current!) + 1}/{_chapterParent.Chapters.Count}";
+                ChapterPosition.Text = L.F($"SONGS IN THIS VIDEO · {_chapterParent.Chapters.IndexOf(_current!) + 1}/{_chapterParent.Chapters.Count}");
             }
             else { ChapterSelector.ItemsSource = null; }
             ChapterShuffleButton.SetResourceReference(Control.BackgroundProperty, _chapterShuffle ? "GoldChrome" : "Chrome");
-            ChapterShuffleButton.ToolTip = "Shuffle songs inside this video: " + (_chapterShuffle ? "on" : "off");
+            ChapterShuffleButton.ToolTip = L.T("Shuffle songs inside this video: ") + (_chapterShuffle ? L.T("on") : L.T("off"));
         }
         finally { _updatingChapterUi = false; }
     }
@@ -90,7 +90,7 @@ public partial class MainWindow
     }
 
     private async void ChapterNext_Click(object sender, RoutedEventArgs e)
-    { if (!await AdvanceSongAsync()) SetStatus("No playable songs in this video."); }
+    { if (!await AdvanceSongAsync()) SetStatus(L.T("No playable songs in this video.")); }
     private async void ChapterPrevious_Click(object sender, RoutedEventArgs e)
     {
         if (_chapterParent is not { } parent || parent.Chapters.Count == 0) return;
@@ -109,7 +109,7 @@ public partial class MainWindow
     private async void WholeVideo_Click(object sender, RoutedEventArgs e)
     {
         if (_chapterParent is not { } parent) return;
-        if (!File.Exists(parent.LocalPath) && parent.Chapters.Any(c => File.Exists(c.LocalPath))) { SetStatus("This download contains separate songs. Use the song selector to play them."); return; }
+        if (!File.Exists(parent.LocalPath) && parent.Chapters.Any(c => File.Exists(c.LocalPath))) { SetStatus(L.T("This download contains separate songs. Use the song selector to play them.")); return; }
         var position = (_current?.StartSeconds ?? 0) + _engine.Position; var paused = _engine.IsPaused;
         parent.UseChapters = false;
         if (!await PlayTrackAsync(parent, false, offset: position, paused: paused, wholeVideo: true)) parent.UseChapters = true;

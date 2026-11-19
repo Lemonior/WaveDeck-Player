@@ -42,7 +42,7 @@ public sealed class UrlService
         using var lease = _session?.Lease() ?? new(null);
         var args = Common(lease);
         args.AddRange(["--flat-playlist", "--dump-single-json", "--skip-download", "--ignore-errors", "--playlist-start", start.ToString(CultureInfo.InvariantCulture), "--playlist-end", end.ToString(CultureInfo.InvariantCulture), _settings.IncludePlaylist ? "--yes-playlist" : "--no-playlist", "--", uri.AbsoluteUri]);
-        progress?.Invoke($"Reading playlist tracks {start:N0}–{end:N0}…");
+        progress?.Invoke(L.F($"Reading playlist tracks {start:N0}–{end:N0}…"));
         var result = await ProcessRunner.RunAsync(_tools.Require("yt-dlp"), args, token);
         if (!IsYouTube(uri) && result.Error.Contains("Unsupported URL", StringComparison.OrdinalIgnoreCase)) return new([DirectTrack(uri)], 2, false, 1);
         Check(result); return ParsePage(result.Output, uri.AbsoluteUri, start, end - start + 1, _settings.PlaylistMaximum);
@@ -119,7 +119,7 @@ public sealed class UrlService
         lock (_indexGate)
         {
             LoadIndex();
-            if (_index!.TryGetValue(key, out var existing) && File.Exists(existing)) { track.LocalPath = existing; track.DownloadedChapter = track.IsChapter; progress?.Invoke("Using the saved copy of " + track.Title); return existing; }
+            if (_index!.TryGetValue(key, out var existing) && File.Exists(existing)) { track.LocalPath = existing; track.DownloadedChapter = track.IsChapter; progress?.Invoke(L.F($"Using the saved copy of {track.Title}")); return existing; }
         }
         Directory.CreateDirectory(_settings.DownloadFolder); using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
         var encoding = _settings.DownloadFormat + "-" + _settings.DownloadQuality + "k";

@@ -17,6 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Localization\pt-BR.json" LogicalName="WaveDeck.Localization.pt-BR.json" />
     <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="SoundTouch.Net" Version="2.3.2" />

@@ -192,6 +192,7 @@ public static partial class SelfTests
         await RunChapterRevisionTestsAsync(root, tools, Test, Sync);
         await RunDesktopAdjustmentTestsAsync(root, Test, Sync);
         await RunSoundV2TestsAsync(root, Test, Sync);
+        await RunLocalizationTestsAsync(root, Test, Sync);
         File.WriteAllText(Path.Combine(root, "summary.txt"), $"{results.Count - failures}/{results.Count} checks passed. Native Windows, .NET {Environment.Version}.\nAudible listening and online YouTube requests are separate checks.\n");
         return failures == 0 ? 0 : 1;
     }

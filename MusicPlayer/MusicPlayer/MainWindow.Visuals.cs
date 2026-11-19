@@ -14,7 +14,7 @@ public partial class MainWindow
         UpdateAudioLayout();
         ChannelC.Mode = _settings.AmbientVisual == "Stereo phase" ? "Phase" : "Ambient";
         ChannelC.AmbientStyle = _settings.AmbientVisual; ChannelC.Trails = _settings.VisualTrails; ChannelC.ColorCycle = _settings.VisualColorCycle;
-        ChannelC.Caption = "CHANNEL C  /  " + _settings.AmbientVisual.ToUpperInvariant();
+        ChannelC.Caption = L.F($"CHANNEL C  /  {L.T(_settings.AmbientVisual).ToUpperInvariant()}");
         ChannelAButton.SetResourceReference(Control.BackgroundProperty, _settings.ChannelAEnabled ? "GoldChrome" : "Chrome");
         ChannelBButton.SetResourceReference(Control.BackgroundProperty, _settings.ChannelBEnabled ? "GoldChrome" : "Chrome");
         ChannelCButton.SetResourceReference(Control.BackgroundProperty, _settings.ChannelCEnabled ? "GoldChrome" : "Chrome");
@@ -32,13 +32,13 @@ public partial class MainWindow
         var menu = new ContextMenu();
         foreach (var style in new[] { "Aurora", "Ribbons", "Orbit", "Stereo phase" })
         {
-            var item = new MenuItem { Header = style, IsCheckable = true, IsChecked = _settings.AmbientVisual == style };
+            var item = new MenuItem { Header = L.T(style), IsCheckable = true, IsChecked = _settings.AmbientVisual == style };
             item.Click += (_, _) => { _settings.AmbientVisual = style; ApplyVisualOptions(); SaveSettings(); }; menu.Items.Add(item);
         }
         menu.Items.Add(new Separator());
-        var trails = new MenuItem { Header = "Layered trails", IsCheckable = true, IsChecked = _settings.VisualTrails };
+        var trails = new MenuItem { Header = L.T("Layered trails"), IsCheckable = true, IsChecked = _settings.VisualTrails };
         trails.Click += (_, _) => { _settings.VisualTrails = trails.IsChecked; ApplyVisualOptions(); SaveSettings(); }; menu.Items.Add(trails);
-        var colors = new MenuItem { Header = "Cycle colors with the music", IsCheckable = true, IsChecked = _settings.VisualColorCycle };
+        var colors = new MenuItem { Header = L.T("Cycle colors with the music"), IsCheckable = true, IsChecked = _settings.VisualColorCycle };
         colors.Click += (_, _) => { _settings.VisualColorCycle = colors.IsChecked; ApplyVisualOptions(); SaveSettings(); }; menu.Items.Add(colors);
         menu.PlacementTarget = VisualOptionsButton; menu.IsOpen = true;
     }

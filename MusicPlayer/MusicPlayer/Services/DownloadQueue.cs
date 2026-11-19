@@ -48,7 +48,7 @@ public sealed class DownloadQueue : IAsyncDisposable
     private void Finish(Job job, DownloadResult result)
     {
         var start = result.Success && job.Batch is { AutoPlay: true } && Interlocked.CompareExchange(ref job.Batch.Started, 1, 0) == 0;
-        _progress.Report(new(job.Track, result.Success ? "Saved" : result.Cancelled ? "Cancelled" : "Failed", result.Success ? "Saved " + job.Track.Title : result.Error ?? "Download failed.", start, NavigationVersion: job.Batch?.NavigationVersion));
+        _progress.Report(new(job.Track, result.Success ? "Saved" : result.Cancelled ? "Cancelled" : "Failed", result.Success ? L.F($"Saved {job.Track.Title}") : L.T(result.Error ?? "Download failed."), start, NavigationVersion: job.Batch?.NavigationVersion));
         Interlocked.Decrement(ref _outstanding); job.Completion.TrySetResult(result);
     }
     private async Task<string> DownloadSongsAsync(Job job, IReadOnlyList<Track> songs, CancellationToken token)
@@ -63,11 +63,11 @@ public sealed class DownloadQueue : IAsyncDisposable
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    _progress.Report(new(child.Track, "Downloading", $"Song {saved + errors.Count + 1}/{songs.Count}: {child.Track.Title}", Parent: job.Track));
+                    _progress.Report(new(child.Track, "Downloading", L.F($"Song {saved + errors.Count + 1}/{songs.Count}: {child.Track.Title}"), Parent: job.Track));
                     var path = await _download(child.Track, token, message => _progress.Report(new(child.Track, "Downloading", message, Parent: job.Track)));
                     first ??= path; saved++; child.Completion.TrySetResult(new(true, path, null));
                     var start = job.Batch is { AutoPlay: true } && Interlocked.CompareExchange(ref job.Batch.Started, 1, 0) == 0;
-                    _progress.Report(new(child.Track, "Saved", $"Saved song {saved}/{songs.Count}: {child.Track.Title}", start, job.Track, job.Batch?.NavigationVersion));
+                    _progress.Report(new(child.Track, "Saved", L.F($"Saved song {saved}/{songs.Count}: {child.Track.Title}"), start, job.Track, job.Batch?.NavigationVersion));
                 }
                 catch (OperationCanceledException) { throw; }
                 catch (Exception ex)
@@ -77,7 +77,7 @@ public sealed class DownloadQueue : IAsyncDisposable
                 }
                 if (_settings.DownloadDelaySeconds > 0 && saved + errors.Count < songs.Count && UrlService.IsYouTube(UrlService.Validate(job.Track.Url))) await Task.Delay(TimeSpan.FromSeconds(_settings.DownloadDelaySeconds), token);
             }
-            if (errors.Count > 0) throw new IOException($"Saved {saved}/{songs.Count} songs. " + errors[0]);
+            if (errors.Count > 0) throw new IOException(L.F($"Saved {saved}/{songs.Count} songs. ") + errors[0]);
             return first ?? throw new IOException("No songs were saved.");
         }
         finally
@@ -97,7 +97,7 @@ public sealed class DownloadQueue : IAsyncDisposable
                 try
                 {
                     cancel.Token.ThrowIfCancellationRequested();
-                    _progress.Report(new(job.Track, "Downloading", "Downloading " + job.Track.Title));
+                    _progress.Report(new(job.Track, "Downloading", L.F($"Downloading {job.Track.Title}")));
                     var songs = await _segments(job.Track, cancel.Token);
                     var path = songs.Count == 1 && ReferenceEquals(songs[0], job.Track)
                         ? await _download(job.Track, cancel.Token, message => _progress.Report(new(job.Track, "Downloading", message)))

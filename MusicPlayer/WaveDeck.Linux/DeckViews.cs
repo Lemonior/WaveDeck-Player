@@ -83,7 +83,7 @@ internal sealed class Channels : Control
     {
         base.Render(context); var width = Bounds.Width; var height = Bounds.Height / 3; if (width < 10 || height < 20) return;
         var line = DeckTheme.BorderPen; var accent = DeckTheme.AccentPen;
-        if(_theme!=DeckTheme.Name){_theme=DeckTheme.Name;_captions=new[]{"CHANNEL A / OSCILLOSCOPE","CHANNEL B / FREQUENCY SPECTRUM","CHANNEL C / STEREO PHASE"}.Select(text=>new FormattedText(text,System.Globalization.CultureInfo.InvariantCulture,FlowDirection.LeftToRight,Typeface.Default,9,DeckTheme.Accent)).ToArray();}
+        if(_theme!=DeckTheme.Name+L.Instance.Code){_theme=DeckTheme.Name+L.Instance.Code;_captions=new[]{"CHANNEL A / OSCILLOSCOPE","CHANNEL B / FREQUENCY SPECTRUM","CHANNEL C / STEREO PHASE"}.Select(text=>new FormattedText(L.T(text),System.Globalization.CultureInfo.InvariantCulture,FlowDirection.LeftToRight,Typeface.Default,9,DeckTheme.Accent)).ToArray();}
         for (var mode=0; mode<3; mode++)
         {
             var top = mode * height; context.DrawRectangle(DeckTheme.Panel, line, new Rect(.5,top+.5,width-1,height-4));

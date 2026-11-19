@@ -49,7 +49,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         {
             try { var resolved = await _resolve(track, token, attempt > 0); return await LinuxPrepared.CreateAsync(Tools, track, resolved.Url, resolved.Headers, offset, track.IsChapter ? track.StartSeconds : 0, token); }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { last = ex; Status?.Invoke("Retrying " + track.Title); }
+            catch (Exception ex) { last = ex; Status?.Invoke(L.F($"Retrying {track.Title}")); }
         }
         if (last != null && AudioError.IsDenied(last)) { var cached = await Urls.BufferPlaybackAsync(track, Storage.CacheFolder, token); return await LinuxPrepared.CreateAsync(Tools, track, cached, null, offset, track.IsChapter ? track.StartSeconds : 0, token, cached); }
         throw last ?? new IOException("Unable to prepare audio.");
@@ -64,7 +64,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); _opening = cancel; _pauseAfterOpen = paused;
         try
         {
-            Status?.Invoke("Opening " + track.Title); var prepared = await PrepareAsync(track, offset, cancel.Token);
+            Status?.Invoke(L.F($"Opening {track.Title}")); var prepared = await PrepareAsync(track, offset, cancel.Token);
             if (cancel.IsCancellationRequested) { prepared.Dispose(); return false; }
             var previous = Cursor;
             if (previous != null && previous != (parent ?? track) && !automatic) History.Push(previous);
@@ -74,13 +74,13 @@ internal sealed class LinuxPlayer : IAsyncDisposable
             if (cancel.IsCancellationRequested) return false;
             if (Current != track) _recoveries = 0;
             Current = track; if (Parent != parent) { Songs.Reset(); SongHistory.Clear(); } Parent = parent;
-            Order.Record(Cursor!); Songs.Record(track); track.State = Cursor!.State = "▶"; Changed?.Invoke(); Status?.Invoke("Playing " + track.Title);
+            Order.Record(Cursor!); Songs.Record(track); track.State = Cursor!.State = "▶"; Changed?.Invoke(); Status?.Invoke(L.F($"Playing {track.Title}"));
             if (!whole && start && Cursor!.Url.Length > 0 && !Cursor.DirectFallback && !UrlService.IsDirectMedia(UrlService.Validate(Cursor.Url))) StartChapters(Cursor);
             if (Settings.YouTubeHistory) _ = MarkWatchedAsync(track);
             return true;
         }
         catch (OperationCanceledException) { return false; }
-        catch (Exception ex) { track.State = "!"; Storage.Log(ex); Status?.Invoke("Skipping " + track.Title + ": " + AudioError.SafeMessage(ex.Message)); return false; }
+        catch (Exception ex) { track.State = "!"; Storage.Log(ex); Status?.Invoke(L.F($"Skipping {track.Title}: {AudioError.SafeMessage(ex.Message)}")); return false; }
         finally { if (_opening == cancel) _opening = null; Changed?.Invoke(); }
     }
     private void StartChapters(Track parent)
@@ -115,7 +115,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
             replacement.Temporary = original.Temporary; original.Temporary = null;
             await Audio.StartAsync(replacement, EqParameters.FromSettings(Settings, Bypass), Audio.IsPaused, cancel.Token); Changed?.Invoke();
         }
-        catch (OperationCanceledException) { } catch (Exception ex) { Storage.Log(ex); Status?.Invoke("Seek failed: " + AudioError.SafeMessage(ex.Message)); }
+        catch (OperationCanceledException) { } catch (Exception ex) { Storage.Log(ex); Status?.Invoke(L.F($"Seek failed: {AudioError.SafeMessage(ex.Message)}")); }
         finally { if (_seeking == cancel) _seeking = null; }
     }
     public async Task StopAsync() { _navigation++; _opening?.Cancel(); _seeking?.Cancel(); _chapters?.Cancel(); await Audio.StopAsync(); if (Current != null) Current.State = ""; if (Parent != null) Parent.State = ""; Changed?.Invoke(); Status?.Invoke("Stopped."); }
@@ -159,8 +159,8 @@ internal sealed class LinuxPlayer : IAsyncDisposable
     private void DownloadChanged(DownloadNotice notice)
     {
         notice.Track.DownloadStatus = notice.Status;
-        if (notice.Parent != null) notice.Parent.DownloadStatus = $"{notice.Parent.Chapters.Count(t => t.DownloadedChapter)}/{notice.Parent.Chapters.Count} songs saved";
-        Status?.Invoke($"{Downloads.Outstanding} remaining · {notice.Message}");
+        if (notice.Parent != null) notice.Parent.DownloadStatus = L.F($"{notice.Parent.Chapters.Count(t => t.DownloadedChapter)}/{notice.Parent.Chapters.Count} songs saved");
+        Status?.Invoke(L.F($"{Downloads.Outstanding} remaining · {notice.Message}"));
         if (notice.StartPlayback && notice.NavigationVersion == _navigation) _ = PlayAsync(notice.Track, notice.Parent, true, paused: Audio.IsPaused);
     }
     private async Task MarkWatchedAsync(Track track) { try { await Task.Delay(5000, _lifetime.Token); if (Current?.Url == track.Url && Audio.IsPlaying) await Urls.MarkWatchedAsync(track, _lifetime.Token); } catch (OperationCanceledException) { } catch (Exception ex) { Storage.Log(ex); } }

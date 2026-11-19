@@ -10,6 +10,7 @@ public partial class ControlsWindow : Window
     public ControlsWindow(PlayerSettings settings)
     {
         InitializeComponent(); _settings = settings;
+        UiText.LocalizeItems(KeyChoice); UiText.LocalizeItems(MouseChoice); UiText.LocalizeItems(GlobalChoice);
         KeyChoice.ItemsSource = new[] { "Space", "Ctrl+Space", "P" }; KeyChoice.SelectedItem = settings.PlayPauseShortcut;
         MouseChoice.ItemsSource = new[] { "Off", "Middle", "XButton1", "XButton2" }; MouseChoice.SelectedItem = settings.MousePlayPause;
         GlobalChoice.ItemsSource = new[] { "Off", "Ctrl+Alt+Space", "Ctrl+Space", "Ctrl+Shift+P" }; GlobalChoice.SelectedItem = settings.GlobalPlayPauseShortcut;
