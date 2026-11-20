@@ -27,9 +27,9 @@ public partial class MainWindow
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { _storage.Log(ex); }
         _lastCheckpoint = Environment.TickCount64;
     }
-    public async Task RestoreLastPlaybackAsync(bool paused = true)
+    public async Task RestoreLastPlaybackAsync(bool paused = true, bool allowUpdateSnapshot = false)
     {
-        if (!_settings.RememberPlayback) return;
+        if (!_settings.RememberPlayback && !allowUpdateSnapshot) return;
         var saved = _pendingResume ?? _settings.LastPlayback;
         if (_pendingResume == null && File.Exists(BookmarkFile))
         {

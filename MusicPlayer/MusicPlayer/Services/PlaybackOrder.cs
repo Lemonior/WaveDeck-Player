@@ -6,6 +6,7 @@ public sealed class PlaybackOrder
 {
     private readonly HashSet<string> _played = [];
     public void Record(Track track) => _played.Add(track.Id);
+    public PlaybackOrder Copy() { var copy = new PlaybackOrder(); copy._played.UnionWith(_played); return copy; }
     public void Reset(Track? current = null) { _played.Clear(); if (current != null) Record(current); }
     public Track? Next(IReadOnlyList<Track> queue, Track? current, bool shuffle, string repeat, bool natural)
     {

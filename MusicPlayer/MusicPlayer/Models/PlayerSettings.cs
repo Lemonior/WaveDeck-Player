@@ -21,6 +21,7 @@ public class PlayerSettings
     public int DownloadDelaySeconds { get; set; } = 5;
     public string Theme { get; set; } = "Modern";
     public string Language { get; set; } = "en";
+    public bool CheckForUpdatesOnStartup { get; set; } = true;
     public bool Shuffle { get; set; }
     public string Repeat { get; set; } = "Off";
     public bool RememberQueue { get; set; } = true;

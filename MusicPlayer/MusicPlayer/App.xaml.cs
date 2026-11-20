@@ -29,6 +29,8 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        var helperIndex = Array.IndexOf(e.Args, "--apply-update");
+        if (helperIndex >= 0) { Shutdown(helperIndex + 1 < e.Args.Length ? await UpdateInstaller.RunHelperAsync(e.Args[helperIndex + 1]) : 1); return; }
         var rootIndex = Array.IndexOf(e.Args, "--data-dir");
         var root = rootIndex >= 0 && rootIndex + 1 < e.Args.Length ? e.Args[rootIndex + 1] : null;
         if (e.Args.Contains("--keyboard-fixture") && root != null)
@@ -55,14 +57,16 @@ public partial class App : Application
             var visualTest = e.Args.Contains("--visual-test");
             var soundTest = e.Args.Contains("--sound-test");
             var layoutTest = e.Args.Contains("--layout-test");
+            var updateTest = e.Args.Contains("--update-ui-test");
             var languageTest = e.Args.Contains("--localization-test");
-            if (!e.Args.Contains("--smoke-test") && !visualTest && !soundTest && !layoutTest && !languageTest)
+            if (!e.Args.Contains("--smoke-test") && !visualTest && !soundTest && !layoutTest && !languageTest && !updateTest)
             {
                 _instance = new(storage.Root);
                 if (!_instance.IsPrimary) { await _instance.ForwardAsync(files); Shutdown(); return; }
             }
             DispatcherUnhandledException += (_, args) => { storage.Log(args.Exception); MessageWindow.Show(MainWindow, AudioError.SafeMessage(args.Exception.Message)); args.Handled = true; };
             var window = new MainWindow(storage); MainWindow = window; window.Show();
+            if (updateTest) { await window.ValidateReleaseFeaturesAsync(storage); Shutdown(); return; }
             if (languageTest) { await window.ValidateLocalizationOnlyAsync(storage); Shutdown(); return; }
             if (layoutTest) { await window.ValidateLayoutAsync(storage); Shutdown(); return; }
             if (soundTest) { await window.ValidateSoundAsync(storage); Shutdown(); return; }
@@ -70,11 +74,17 @@ public partial class App : Application
             if (e.Args.Contains("--smoke-test")) { await Validation.UiSmokeTest.RunAsync(window, storage); Shutdown(); return; }
             _instance?.Listen(paths => Dispatcher.BeginInvoke(() => DeliverFiles(window, paths)));
             if (files.Length > 0) await window.OpenExternalFilesAsync(files);
-            else await window.RestoreLastPlaybackAsync();
+            else
+            {
+                var resume = Array.IndexOf(e.Args, "--resume-update");
+                if (resume >= 0 && resume + 1 < e.Args.Length) await window.RestoreUpdateStateAsync(e.Args[resume + 1]);
+                else await window.RestoreLastPlaybackAsync();
+            }
+            _ = window.StartUpdatesAsync();
         }
         catch (Exception ex)
         {
-            if ((e.Args.Contains("--smoke-test") || e.Args.Contains("--visual-test") || e.Args.Contains("--sound-test") || e.Args.Contains("--layout-test") || e.Args.Contains("--localization-test")) && root != null)
+            if ((e.Args.Contains("--smoke-test") || e.Args.Contains("--visual-test") || e.Args.Contains("--sound-test") || e.Args.Contains("--layout-test") || e.Args.Contains("--localization-test") || e.Args.Contains("--update-ui-test")) && root != null)
             { Directory.CreateDirectory(root); File.WriteAllText(Path.Combine(root, "ui-results.json"), System.Text.Json.JsonSerializer.Serialize(new { passed = false, error = ex.ToString() }, Storage.JsonOptions)); }
             else MessageWindow.Show(null, AudioError.SafeMessage(ex.Message), "WaveDeck startup error");
             Shutdown(1);

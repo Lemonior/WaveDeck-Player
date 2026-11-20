@@ -44,6 +44,12 @@ foreach ($platform in $Platforms) {
     }
     $assemblyVersion = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $appRoot 'WaveDeck.dll')).Version.ToString()
     if ($assemblyVersion -ne ($version.Split('-')[0] + '.0')) { throw "Assembly version $assemblyVersion does not match $version." }
+    $manifestFiles = @(Get-ChildItem -LiteralPath $appRoot -Recurse -File | Sort-Object FullName | ForEach-Object {
+        [ordered]@{ path = $_.FullName.Substring($appRoot.Length + 1).Replace('\', '/'); length = $_.Length; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant() }
+    })
+    $manifest = [ordered]@{ schema = 1; version = $version; runtimeId = $rid; files = $manifestFiles }
+    [IO.File]::WriteAllText((Join-Path $appRoot 'update-manifest.json'), ($manifest | ConvertTo-Json -Depth 6), (New-Object Text.UTF8Encoding($false)))
+    $required += 'update-manifest.json'
     $archivePath = Join-Path $releaseRoot "WaveDeck-$version-$rid.zip"
     $partialPath = $archivePath + '.' + [guid]::NewGuid().ToString('N') + '.partial'
     $archive = [IO.Compression.ZipFile]::Open($partialPath, [IO.Compression.ZipArchiveMode]::Create)

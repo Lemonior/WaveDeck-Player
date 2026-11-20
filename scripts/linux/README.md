@@ -21,6 +21,11 @@ FFmpeg/ffprobe and desktop audio/display libraries come from your Linux package 
 - Real ten-band EQ, presets, default reset, preamp, stereo width, safe gain, perceptual volume, live channels and three textured themes.
 - Custom centered two-line header, styled controls/menus/errors, enlarged slider drag areas, ±10 seconds, keyboard play/pause options and optional middle-mouse play/pause.
 - WaveDeck JSON and M3U playlists remember nested songs and downloaded file paths. Settings are stored in your Linux application-data folder, normally ~/.local/share/WaveDeck; downloads default to your Music/WaveDeck folder.
+- Prepares up to three upcoming songs across chapters and playlist entries. Background preparation failures stay silent; actual playback failures retain normal retry/skip feedback.
+
+## Application updates
+
+WaveDeck 1.0.2 and later check public GitHub Releases quietly on startup. **Settings → Check Updates** checks immediately and offers **Download and install** for a newer stable Linux x64 release. No GitHub sign-in is needed; startup checks can be disabled. Installation verifies the ZIP and every extracted file, waits for active downloads/imports, then briefly restarts automatically and restores the queue, song/chapter, position and pause state. Keep the extracted portable application folder writable and separate from its data profile. Changed originals are backed up inside `.wavedeck-backups`. Updates restore executable permissions and keep system dependencies as installed. Versions 1.0.0/1.0.1 require one manual download of 1.0.2 to gain the updater.
 
 **Stream** starts online playback. **Download** saves without starting it. **Download & play** starts the first completed file/song and keeps downloading the rest. Pending queued tracks can stream independently. A later completion respects newer manual navigation. Pause, seek, volume, EQ and Stop remain available while downloads or audio preparation run.
 

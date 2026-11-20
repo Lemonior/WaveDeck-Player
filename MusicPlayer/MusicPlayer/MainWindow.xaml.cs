@@ -38,10 +38,10 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(40) };
     private readonly AudioSnapshot _visualBuffer = AudioAnalyzer.CreateBuffer();
     private CancellationTokenSource? _workCancel, _playCancel, _seekCancel;
-    private CancellationTokenSource? _prefetchCancel;
-    private Task<PreparedAudio>? _prefetch;
-    private Track? _prefetchTrack;
-    private Track? _prefetchQueueTrack;
+    private readonly AudioPrefetch<PreparedAudio> _prefetchAudio = new();
+    private Task<PreparedAudio?>? _prefetch => _prefetchAudio.FirstTask;
+    private Track? _prefetchTrack => _prefetchAudio.First?.Track;
+    private Track? _prefetchQueueTrack => _prefetchAudio.First is { } next && next.Parent != _chapterParent ? next.Cursor : null;
     private PlaylistImportSession? _playlistSession;
     private int _recoveries, _navigationVersion;
     private Track? _current;
@@ -130,6 +130,7 @@ public partial class MainWindow : Window
     private void RefreshPlayer()
     {
         if (_closing) return;
+        TryInstallPendingUpdate();
         if (_engine.HasSource && Environment.TickCount64 - _lastCheckpoint >= 15000) CapturePlayback(checkpoint: true);
         var visible = WindowState != WindowState.Minimized && IsVisible;
         var interval = TimeSpan.FromMilliseconds(_engine.IsPlaying && visible ? 40 : 250);
@@ -145,7 +146,7 @@ public partial class MainWindow : Window
         }
         var pos = _engine.HasSource ? _engine.Position : 0;
         var duration = _current?.Duration ?? 0;
-        if (_engine.IsPlaying && _playCancel == null && duration > 0 && duration - pos <= 30) StartPrefetch();
+        if (_engine.HasSource && _playCancel == null) StartPrefetch();
         TimeLabel.Text = TimeText(pos); DurationLabel.Text = " / " + TimeText(duration);
         RemainingLabel.Text = "−" + TimeText(Math.Max(0, duration - pos));
         SeekSlider.IsEnabled = duration > 0 && _engine.HasSource;
@@ -213,17 +214,9 @@ public partial class MainWindow : Window
         try
         {
             SetStatus(L.T("Opening ") + track.Title + "…"); track.State = "…";
-            PreparedAudio prepared;
-            if (ReferenceEquals(_prefetchTrack, track) && _prefetch != null && offset == 0 && !forceCompatible)
-            {
-                var task = _prefetch; var prefetchCancel = _prefetchCancel;
-                _prefetch = null; _prefetchTrack = null; _prefetchQueueTrack = null; _prefetchCancel = null;
-                try { prepared = await task.WaitAsync(cancel.Token); }
-                catch (OperationCanceledException) { prefetchCancel?.Cancel(); _ = DisposePreparationAsync(task, prefetchCancel); throw; }
-                catch { prefetchCancel?.Dispose(); prepared = await PrepareWithRetryAsync(track, cancel.Token, offset, forceCompatible); }
-                finally { if (task.IsCompleted) prefetchCancel?.Dispose(); }
-            }
-            else { CancelPrefetch(); prepared = await PrepareWithRetryAsync(track, cancel.Token, offset, forceCompatible); }
+            var prepared = offset == 0 && !forceCompatible ? await _prefetchAudio.TakeAsync(track, cancel.Token) : null;
+            if (offset != 0 || forceCompatible) CancelPrefetch();
+            prepared ??= await PrepareWithRetryAsync(track, cancel.Token, offset, forceCompatible);
             if (cancel.IsCancellationRequested) { prepared.Dispose(); cancel.Token.ThrowIfCancellationRequested(); }
             var previousParent = QueueCursor; var nextParent = chapterParent ?? track;
             if (addHistory && previousParent != null && !ReferenceEquals(previousParent, nextParent)) _history.Push(previousParent);
@@ -260,23 +253,11 @@ public partial class MainWindow : Window
     }
     private void StartPrefetch()
     {
-        if (_prefetch != null || _current == null) return;
-        var next = _chapterParent != null ? NextSong(true) : null;
-        _prefetchQueueTrack = next != null ? null : _settings.Repeat == "One" ? QueueCursor : _order.Next(_queue, QueueCursor, _settings.Shuffle, _settings.Repeat, true);
-        next ??= _prefetchQueueTrack;
-        if (next is { IsChapter: false, UseChapters: true } && next.Chapters.Count > 0) next = next.Chapters[0];
-        if (next == null) return;
-        _prefetchTrack = next; _prefetchCancel = new();
-        _prefetch = PrepareTrackAsync(next, _prefetchCancel.Token);
+        if (_current == null || _closing) return;
+        var plan = PlaybackLookahead.Plan(_queue, _current, _chapterParent, _order, _chapterOrder, _settings.Shuffle, _chapterShuffle, _settings.Repeat, _prefetchAudio.Targets);
+        _prefetchAudio.Fill(plan, (track, token) => PrepareTrackAsync(track, token));
     }
-    private void CancelPrefetch()
-    {
-        var task = _prefetch; var cancel = _prefetchCancel;
-        _prefetch = null; _prefetchTrack = null; _prefetchQueueTrack = null; _prefetchCancel = null;
-        cancel?.Cancel(); if (task != null) _ = DisposePreparationAsync(task, cancel); else cancel?.Dispose();
-    }
-    private static async Task DisposePreparationAsync(Task<PreparedAudio> task, CancellationTokenSource? cancel)
-    { try { (await task).Dispose(); } catch { } finally { cancel?.Dispose(); } }
+    private void CancelPrefetch() => _prefetchAudio.Clear();
     private async Task HandleEndAsync(Exception? error)
     {
         if (_closing || _playCancel != null || _engine.IsPlaying || !_engine.HasSource) return;
@@ -507,7 +488,7 @@ public partial class MainWindow : Window
     private void OpenSource_Click(object sender, RoutedEventArgs e) { if (Playlist.SelectedItem is Track track) { if (track.Url.Length > 0) OpenExternal(UrlService.Validate(track.Url).AbsoluteUri); else if (File.Exists(track.LocalPath)) Process.Start(new ProcessStartInfo("explorer.exe") { UseShellExecute = true, ArgumentList = { "/select,", track.LocalPath } }); } }
     private void OpenExternal(string uri) { try { Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true }); } catch (Exception ex) { Report(ex); } }
     private void DownloadsFolder_Click(object sender, RoutedEventArgs e) { try { Directory.CreateDirectory(_settings.DownloadFolder); Process.Start(new ProcessStartInfo(_settings.DownloadFolder) { UseShellExecute = true }); } catch (Exception ex) { Report(ex); } }
-    private void Settings_Click(object sender, RoutedEventArgs e) { var window = new SettingsWindow(_settings, _urls, _session) { Owner = this }; if (window.ShowDialog() == true) { CancelPrefetch(); SaveSettings(); if (!_settings.RememberPlayback) CapturePlayback(checkpoint: true); SetStatus(L.T("Settings saved.")); } }
+    private void Settings_Click(object sender, RoutedEventArgs e) { var window = new SettingsWindow(_settings, _urls, _session, ShowUpdates) { Owner = this }; if (window.ShowDialog() == true) { CancelPrefetch(); SaveSettings(); if (!_settings.RememberPlayback) CapturePlayback(checkpoint: true); SetStatus(L.T("Settings saved.")); } }
     private void About_Click(object sender, RoutedEventArgs e) => MessageWindow.Show(this, L.F($"WaveDeck {AppVersion.Current}\nClassic music, new frequencies.\n\nChoose keyboard / mouse playback shortcuts in Controls.\nCtrl+Left / Right: back / forward 10 seconds\nAlt+Left / Right: previous / next track\nCtrl+O: add files · Ctrl+F: search · Ctrl+L: URL\n\nDrag anywhere along a slider to move its knob.\nDouble-click a slider to restore its default.\nSongs are detected automatically at every video start.\nSong controls: previous / next / shuffle.\nRepeat One repeats the selected song.\nChaptered downloads save each song as a separate file.\n\nStream plays online. Download saves in the background.\nDownload & play saves first, then plays the saved file.\nLoad all continues pages up to your configured limit.\n\nAudio: NAudio · FFmpeg · yt-dlp · Deno"), L.T("About WaveDeck"));
     private void Header_Drag(object sender, MouseButtonEventArgs e)
     {

@@ -88,8 +88,10 @@ public partial class MainWindow
         if (e.OriginalSource is DependencyObject source && FindVisualParent<TextBox>(source) != null) return;
         Play_Click(this, new()); e.Handled = true;
     }
+    private long _notificationAttempts;
     private void Ding()
     {
+        _notificationAttempts++;
         if (_silentValidation || Environment.TickCount64 - _lastDing < 1800) return;
         _lastDing = Environment.TickCount64; try { System.Media.SystemSounds.Asterisk.Play(); } catch { }
     }

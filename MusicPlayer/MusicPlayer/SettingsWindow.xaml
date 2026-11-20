@@ -19,6 +19,10 @@
    <CheckBox x:Name="ScanSubfoldersCheck" i18n:Translate.Content="Include subfolders when scanning music folders" Margin="0,0,0,12"/>
    <Button i18n:Translate.Content="Choose default file types…" Click="Defaults_Click" HorizontalAlignment="Left" Margin="0,0,0,6"/>
    <TextBlock i18n:Translate.Text="Register WaveDeck for audio and playlists, then choose your file types in Windows. Adds a Play folder in WaveDeck action to Explorer." Foreground="{DynamicResource Muted}" TextWrapping="Wrap" FontSize="10" Margin="0,0,0,16"/>
+   <TextBlock i18n:Translate.Text="APPLICATION UPDATES" Style="{StaticResource Label}" Margin="0,0,0,7"/>
+   <TextBlock x:Name="AppVersionText" Foreground="{DynamicResource Muted}" Margin="0,0,0,7"/>
+   <CheckBox x:Name="StartupUpdateCheck" i18n:Translate.Content="Check for updates when WaveDeck opens" Margin="0,0,0,8"/>
+   <Button i18n:Translate.Content="Check Updates" Click="CheckUpdates_Click" HorizontalAlignment="Left" Margin="0,0,0,16"/>
    <TextBlock i18n:Translate.Text="YOUTUBE ACCOUNT" Style="{StaticResource Label}" Margin="0,0,0,7"/>
    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><TextBlock x:Name="AccountStatus" Foreground="{DynamicResource Muted}" FontSize="11"/><Button Grid.Column="1" i18n:Translate.Content="Sign in with Google" Click="SignIn_Click"/><Button Grid.Column="2" x:Name="DisconnectButton" i18n:Translate.Content="Disconnect" Click="Disconnect_Click" Margin="6,0,0,0"/></Grid>
    <TextBlock i18n:Translate.Text="Use your default browser, a separate sign-in window, or import a session file when your browser protects its login. Sessions are encrypted for this Windows user. Private and member videos still require access on your account." TextWrapping="Wrap" Foreground="{DynamicResource Muted}" FontSize="10" Margin="0,7,0,10"/>

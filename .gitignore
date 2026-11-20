@@ -23,3 +23,7 @@ AGENTS.md
 .env.*
 !.env.example
 *.suo
+
+# Local application update backups
+**/.wavedeck-backups/
+*.wavedeck-new-*

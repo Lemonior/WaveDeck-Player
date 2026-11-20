@@ -14,9 +14,11 @@ public partial class SettingsWindow : Window
     private readonly CancellationTokenSource _cancel = new();
     private readonly string _originalTheme;
     private bool _ready;
-    public SettingsWindow(PlayerSettings settings, UrlService urls, YouTubeSession session)
+    private readonly Func<Window, Func<bool>, bool>? _checkUpdates;
+    public SettingsWindow(PlayerSettings settings, UrlService urls, YouTubeSession session, Func<Window, Func<bool>, bool>? checkUpdates = null)
     {
-        InitializeComponent(); _settings = settings; _urls = urls; _session = session; _originalTheme = settings.Theme;
+        InitializeComponent(); _settings = settings; _urls = urls; _session = session; _originalTheme = settings.Theme; _checkUpdates = checkUpdates;
+        StartupUpdateCheck.IsChecked = settings.CheckForUpdatesOnStartup; AppVersionText.Text = L.F($"Installed version: {AppVersion.Current}");
         SourceInitialized += (_, _) => NativeWindow.ApplyDarkCaption(this);
         FolderBox.Text = settings.DownloadFolder;
         FormatBox.ItemsSource = new[] { "mp3", "m4a", "flac", "wav", "opus" }; FormatBox.SelectedItem = settings.DownloadFormat;
@@ -38,12 +40,15 @@ public partial class SettingsWindow : Window
     private void Disconnect_Click(object sender, RoutedEventArgs e) { _session.Disconnect(); UpdateAccount(); }
     private void Defaults_Click(object sender, RoutedEventArgs e)
     { try { FileAssociations.ChooseDefaults(); } catch (Exception ex) { MessageWindow.Show(this, AudioError.SafeMessage(ex.Message)); } }
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private void CheckUpdates_Click(object sender, RoutedEventArgs e)
+    { if (_checkUpdates?.Invoke(this, TryCommitSettings) == true) DialogResult = true; }
+    private void Save_Click(object sender, RoutedEventArgs e) { if (TryCommitSettings()) DialogResult = true; }
+    private bool TryCommitSettings()
     {
-        if (!int.TryParse(LimitBox.Text, out var limit) || limit is < 1 or > 2000) { MessageWindow.Show(this, L.T("Choose a page size from 1 to 2000.")); return; }
-        if (!int.TryParse(MaximumBox.Text, out var maximum) || maximum < limit || maximum > 50000) { MessageWindow.Show(this, L.T("Choose a total limit between the page size and 50,000.")); return; }
-        if (!int.TryParse(DelayBox.Text, out var delay) || delay is < 0 or > 30) { MessageWindow.Show(this, L.T("Choose a download delay from 0 to 30 seconds.")); return; }
-        if (!Path.IsPathFullyQualified(FolderBox.Text.Trim())) { MessageWindow.Show(this, L.T("Choose a complete download folder path.")); return; }
+        if (!int.TryParse(LimitBox.Text, out var limit) || limit is < 1 or > 2000) { MessageWindow.Show(this, L.T("Choose a page size from 1 to 2000.")); return false; }
+        if (!int.TryParse(MaximumBox.Text, out var maximum) || maximum < limit || maximum > 50000) { MessageWindow.Show(this, L.T("Choose a total limit between the page size and 50,000.")); return false; }
+        if (!int.TryParse(DelayBox.Text, out var delay) || delay is < 0 or > 30) { MessageWindow.Show(this, L.T("Choose a download delay from 0 to 30 seconds.")); return false; }
+        if (!Path.IsPathFullyQualified(FolderBox.Text.Trim())) { MessageWindow.Show(this, L.T("Choose a complete download folder path.")); return false; }
         _settings.DownloadFolder = FolderBox.Text.Trim(); _settings.DownloadFormat = FormatBox.SelectedItem as string ?? "mp3";
         _settings.DownloadQuality = QualityBox.SelectedItem as string ?? "192"; _settings.Theme = ThemeBox.SelectedItem as string ?? "Modern";
         _settings.Language = (LanguageBox.SelectedItem as L.LanguageChoice)?.Code ?? "en";
@@ -52,7 +57,8 @@ public partial class SettingsWindow : Window
         _settings.YouTubeHistory = HistoryCheck.IsChecked == true;
         _settings.SplitChapters = SplitChaptersCheck.IsChecked == true;
         _settings.RememberPlayback = ResumeCheck.IsChecked == true; _settings.ScanSiblingFiles = ScanSiblingsCheck.IsChecked == true; _settings.ScanSubfolders = ScanSubfoldersCheck.IsChecked == true;
-        L.Apply(_settings.Language); DialogResult = true;
+        _settings.CheckForUpdatesOnStartup = StartupUpdateCheck.IsChecked == true;
+        L.Apply(_settings.Language); return true;
     }
     private async void Update_Click(object sender, RoutedEventArgs e)
     {

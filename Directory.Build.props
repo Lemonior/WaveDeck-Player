@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Change this value to version every WaveDeck project and release ZIP. -->
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 </Project>

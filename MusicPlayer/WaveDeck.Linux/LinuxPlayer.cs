@@ -25,6 +25,9 @@ internal sealed class LinuxPlayer : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private CancellationTokenSource? _opening, _seeking, _chapters;
     private bool _pauseAfterOpen;
+    public bool IsOpening => _opening != null || _seeking != null;
+    private readonly AudioPrefetch<LinuxPrepared> _prefetch = new();
+    public void ResetPreload() => _prefetch.Clear();
     private int _navigation;
     private int _recoveries;
     private readonly Func<Track,CancellationToken,bool,Task<ResolvedAudio>> _resolve;
@@ -36,12 +39,18 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         if (Settings.RememberQueue) Queue.AddRange(Settings.Queue); Settings.Queue = [];
         _resolve = resolve ?? Urls.ResolveAsync;
         _progress = new(notice => Dispatch(() => DownloadChanged(notice))); Downloads = new(Urls, Settings, _progress,download);
+        Queue.CollectionChanged += (_, _) => ResetPreload();
         Audio.Ended += error => Dispatch(() => _ = EndAsync(error));
     }
-    public void Tick() => _progress.Flush();
+    public void Tick()
+    {
+        _progress.Flush();
+        if (Current != null && Audio.HasSource && _opening == null)
+            _prefetch.Fill(PlaybackLookahead.Plan(Queue, Current, Parent, Order, Songs, Settings.Shuffle, SongShuffle, Settings.Repeat, _prefetch.Targets), (track, token) => PrepareAsync(track, 0, token, silent: true));
+    }
     public void Configure() => Audio.Configure(EqParameters.FromSettings(Settings, Bypass));
     public void Toggle() { if (Audio.HasSource) { Audio.TogglePause(); if (_opening != null) _pauseAfterOpen = Audio.IsPaused; } else if (_opening != null) _pauseAfterOpen = !_pauseAfterOpen; Changed?.Invoke(); }
-    private async Task<LinuxPrepared> PrepareAsync(Track track, double offset, CancellationToken token)
+    private async Task<LinuxPrepared> PrepareAsync(Track track, double offset, CancellationToken token, bool silent = false)
     {
         if (File.Exists(track.LocalPath)) return await LinuxPrepared.CreateAsync(Tools, track, track.LocalPath, null, offset, track.MediaStart, token);
         Exception? last = null;
@@ -49,7 +58,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         {
             try { var resolved = await _resolve(track, token, attempt > 0); return await LinuxPrepared.CreateAsync(Tools, track, resolved.Url, resolved.Headers, offset, track.IsChapter ? track.StartSeconds : 0, token); }
             catch (OperationCanceledException) { throw; }
-            catch (Exception ex) { last = ex; Status?.Invoke(L.F($"Retrying {track.Title}")); }
+            catch (Exception ex) { last = ex; if (!silent) Status?.Invoke(L.F($"Retrying {track.Title}")); }
         }
         if (last != null && AudioError.IsDenied(last)) { var cached = await Urls.BufferPlaybackAsync(track, Storage.CacheFolder, token); return await LinuxPrepared.CreateAsync(Tools, track, cached, null, offset, track.IsChapter ? track.StartSeconds : 0, token, cached); }
         throw last ?? new IOException("Unable to prepare audio.");
@@ -64,7 +73,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         using var cancel = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); _opening = cancel; _pauseAfterOpen = paused;
         try
         {
-            Status?.Invoke(L.F($"Opening {track.Title}")); var prepared = await PrepareAsync(track, offset, cancel.Token);
+            Status?.Invoke(L.F($"Opening {track.Title}")); var prepared = offset == 0 ? await _prefetch.TakeAsync(track, cancel.Token) : null; if (offset != 0) ResetPreload(); prepared ??= await PrepareAsync(track, offset, cancel.Token);
             if (cancel.IsCancellationRequested) { prepared.Dispose(); return false; }
             var previous = Cursor;
             if (previous != null && previous != (parent ?? track) && !automatic) History.Push(previous);
@@ -118,7 +127,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         catch (OperationCanceledException) { } catch (Exception ex) { Storage.Log(ex); Status?.Invoke(L.F($"Seek failed: {AudioError.SafeMessage(ex.Message)}")); }
         finally { if (_seeking == cancel) _seeking = null; }
     }
-    public async Task StopAsync() { _navigation++; _opening?.Cancel(); _seeking?.Cancel(); _chapters?.Cancel(); await Audio.StopAsync(); if (Current != null) Current.State = ""; if (Parent != null) Parent.State = ""; Changed?.Invoke(); Status?.Invoke("Stopped."); }
+    public async Task StopAsync() { ResetPreload(); _navigation++; _opening?.Cancel(); _seeking?.Cancel(); _chapters?.Cancel(); await Audio.StopAsync(); if (Current != null) Current.State = ""; if (Parent != null) Parent.State = ""; Changed?.Invoke(); Status?.Invoke("Stopped."); }
     public async Task ClearAsync() { await StopAsync(); Downloads.Cancel(); Queue.Clear(); Current=Parent=null; History.Clear(); SongHistory.Clear(); Order.Reset(); Songs.Reset(); Changed?.Invoke(); }
     public async Task NextAsync(bool natural = false, bool song = false, Track? failed = null)
     {
@@ -130,7 +139,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
             var cursor = Current;
             while (true)
             {
-                var next = failed == null && natural && Settings.Repeat == "One" ? Current : Songs.Next(Parent.Chapters, cursor, SongShuffle, song ? "All" : "Off", natural);
+                var next = _prefetch.First is { } upcoming && upcoming.Parent == Parent && (natural || Settings.Repeat != "One") ? upcoming.Track : failed == null && natural && Settings.Repeat == "One" ? Current : Songs.Next(Parent.Chapters, cursor, SongShuffle, song ? "All" : "Off", natural);
                 if (next == null || !attempted.Add(next.Id)) break;
                 if (await PlayAsync(next, Parent, true)) return;
                 if (_navigation != version) return; cursor = next;
@@ -140,7 +149,7 @@ internal sealed class LinuxPlayer : IAsyncDisposable
         var main = Cursor;
         while (true)
         {
-            var next = failed == null && natural && Settings.Repeat == "One" ? main : Order.Next(Queue, main, Settings.Shuffle, Settings.Repeat, natural);
+            var next = _prefetch.First is { } upcoming && upcoming.Cursor != main && (natural || Settings.Repeat != "One") ? upcoming.Cursor : failed == null && natural && Settings.Repeat == "One" ? main : Order.Next(Queue, main, Settings.Shuffle, Settings.Repeat, natural);
             if (next == null || !attempted.Add(next.Id)) break;
             if (await PlayAsync(next, automatic: true)) return;
             if (_navigation != version) return; main = next;

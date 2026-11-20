@@ -13,6 +13,7 @@ internal static class Program
     public static int Main(string[] args)
     {
         Arguments = args;
+        var helper = Array.IndexOf(args, "--apply-update"); if (helper >= 0) return helper + 1 < args.Length ? UpdateInstaller.RunHelperAsync(args[helper + 1]).GetAwaiter().GetResult() : 1;
         if (args.Contains("--self-test")) return LinuxTests.RunAsync(DataRoot()).GetAwaiter().GetResult();
         return AppBuilder.Configure<App>().UsePlatformDetect().LogToTrace().StartWithClassicDesktopLifetime(args);
     }
