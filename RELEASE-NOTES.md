@@ -1,3 +1,20 @@
+# WaveDeck 1.1.0
+
+Native Android edition for sideloading on Android 8 and newer, alongside the Windows and Linux portable editions.
+
+- Local music/folders through Android's system picker, public YouTube videos/playlists and direct online audio, with Stream, Download and Download & play modes.
+- Screen-off playback through a Media3 foreground service, lock-screen and notification controls, wired/Bluetooth media transport, headset-hook click gestures, audio focus and pause on audio-route disconnection.
+- Ten-band EQ, tone and effects controls adapted to a phone, queue/search, shuffle/repeat, saved playlists/presets and paused checkpoint restoration.
+- Original encoded offline audio stored privately; silent background preparation of up to three upcoming online sources.
+- Modern, OldSchool and Retro themes; English and Português (Brasil), with Language directly below Theme. Startup release checks and Settings → Check Updates use the public repository; future APK installation requires Android's confirmation.
+- Central version remains in `Directory.Build.props`. `scripts/Publish-Android.ps1` produces the signed universal `WaveDeck-Android/WaveDeck-1.1.0-android.apk` and checksums. Generated files and the persistent development signer stay ignored.
+
+Download `WaveDeck-1.1.0-win-x64.zip`, `WaveDeck-1.1.0-linux-x64.zip`, or the directly installable `WaveDeck-1.1.0-android.apk`. Android uses the same development signer as the tested sideload build, so it can update that installation. Corresponding Android application and extractor source are supplied in `WaveDeck-1.1.0-android-source.zip`.
+
+The Android edition uses anonymous public YouTube access. Desktop Google sessions/history, desktop visualizers, FFmpeg conversion and desktop global hotkeys are not included. Codec support and headset gestures depend on the phone. The [validation record](Context/1.1.0-android-validation.md) records automated results and their limits. On November 22, 2026, the user confirmed Android works as expected on their phone and authorized committing and releasing 1.1.0.
+
+---
+
 # WaveDeck 1.0.2
 
 Automatic release checks, installation from Settings, and smoother autoplay.

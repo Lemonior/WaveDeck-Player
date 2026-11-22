@@ -1,0 +1,37 @@
+JSR-305 3.0.2 original source notices
+Source: https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2-sources.jar
+The upstream POM identifies the overall artifact license as the BSD License.
+The concurrent annotations additionally retain the following original source notices.
+
+javax/annotation/concurrent/GuardedBy.java
+/*
+ * Copyright (c) 2005 Brian Goetz
+ * Released under the Creative Commons Attribution License
+ *   (http://creativecommons.org/licenses/by/2.5)
+ * Official home: http://www.jcip.net
+ */
+
+javax/annotation/concurrent/Immutable.java
+/*
+ * Copyright (c) 2005 Brian Goetz
+ * Released under the Creative Commons Attribution License
+ *   (http://creativecommons.org/licenses/by/2.5)
+ * Official home: http://www.jcip.net
+ */
+
+javax/annotation/concurrent/NotThreadSafe.java
+/*
+ * Copyright (c) 2005 Brian Goetz
+ * Released under the Creative Commons Attribution License
+ *   (http://creativecommons.org/licenses/by/2.5)
+ * Official home: http://www.jcip.net
+ */
+
+javax/annotation/concurrent/ThreadSafe.java
+/*
+ * Copyright (c) 2005 Brian Goetz
+ * Released under the Creative Commons Attribution License
+ *   (http://creativecommons.org/licenses/by/2.5)
+ * Official home: http://www.jcip.net
+ */
+

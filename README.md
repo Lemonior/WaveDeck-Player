@@ -1,6 +1,6 @@
 # WaveDeck
 
-A C# WPF desktop music player with an early-2000s feel, live audio visualizers and a ten-band equalizer. Runs on Windows 10/11 x64.
+A music player with an early-2000s feel, live desktop visualizers and a ten-band equalizer. The desktop editions run on Windows 10/11 x64 and Linux x86_64; a native Android edition is in development for 1.1.0.
 
 Download the Windows or Linux ZIP from [GitHub Releases](https://github.com/Lemonior/WaveDeck-Player/releases). Extract the complete folder before launching.
 
@@ -11,6 +11,20 @@ Open **WaveDeck\WaveDeck.exe**. Keep the complete WaveDeck folder together. Its 
 ## Linux
 
 The separate **WaveDeck-Linux** folder contains a self-contained Linux x86_64 build. Copy it to Linux, run `bash install-dependencies.sh` once if dependencies are missing, then `bash launch.sh`. The native executable is **WaveDeck**. Its README explains desktop dependencies, optional application-menu installation and platform differences.
+
+## Android 1.1.0 development build
+
+The native Android project is [MusicPlayer/WaveDeck.Android](MusicPlayer/WaveDeck.Android/README.md). Download the APK directly from [GitHub Releases](https://github.com/Lemonior/WaveDeck-Player/releases), or build a signed, universal Android 8+ APK with JDK 17 or 21 on Windows:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-Android.ps1
+```
+
+The script downloads checksum-verified build tools into ignored `tools/`, runs unit checks and Android lint, verifies signing, and writes `WaveDeck-Android/WaveDeck-1.1.0-android.apk`, installation instructions and SHA-256 checksums. Keep the development signing key and password under `tools/android-signing/` private and backed up so future APKs can update the same installation.
+
+Android supports local files/folders through the system picker, public YouTube videos/playlists, direct audio URLs, streaming and private offline copies. A Media3 foreground service owns playback so it continues with the screen off and provides lock-screen, wired headset and Bluetooth transport commands. Settings include themes, English / Português (Brasil), and release checks. Android updates use the system APK installer with user confirmation.
+
+The Android interface adapts the EQ, tone and effects to a phone. Its offline downloads retain original encoded audio in private app storage; desktop MP3/FLAC conversion, Google account sessions/watch history, desktop visualizers and desktop global hotkeys are not part of this build. Device codecs determine supported local formats. The [validation record](Context/1.1.0-android-validation.md) distinguishes emulator checks from physical-phone acceptance. The user confirmed Android works as expected and approved releasing 1.1.0 on November 22, 2026.
 
 ## Memory
 
@@ -110,7 +124,7 @@ Preferences, queue, playback checkpoint, connection and error log live in %LOCAL
 
 ## Build and validate
 
-The application version lives in **`Directory.Build.props`** at the repository root. Change its single `<Version>1.0.0</Version>` value to version both applications, their assembly metadata, About displays and release ZIPs. New projects under this root inherit it too. [.NET imports this file automatically](https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory).
+The application version lives in **`Directory.Build.props`** at the repository root. Change its single `<Version>1.1.0</Version>` value to version the desktop applications, their assembly metadata, About displays, release ZIPs and Android APK. New .NET projects under this root inherit it; Android's Gradle configuration reads the same file. [.NET imports this file automatically](https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory).
 
 Requires .NET 10 SDK on Windows.
 
@@ -150,4 +164,4 @@ git push origin v1.0.0
 
 The [Release workflow](.github/workflows/release.yml) verifies that the tag matches the central version, builds both ZIPs, and publishes them with checksums through [GitHub Releases](https://cli.github.com/manual/gh_release_create). It can also be run manually against an existing version tag. Review the Actions run before announcing the release.
 
-Generated builds (`WaveDeck/`, `WaveDeck-Linux/`, and future `WaveDeck-Android/`), downloaded tools, `bin/`, `obj/`, archives and `artifacts/` stay out of Git. Release ZIPs belong in GitHub Releases. `AGENTS.md` contains local working instructions and is intentionally ignored. Android has no build or release package yet.
+Generated builds (`WaveDeck/`, `WaveDeck-Linux/`, and `WaveDeck-Android/`), downloaded tools, signing keys, `bin/`, `obj/`, Gradle caches, APKs, archives and `artifacts/` stay out of Git. Release binaries belong in GitHub Releases. The existing release workflow packages desktop ZIPs; Android's development APK is built locally and is not uploaded by it. `AGENTS.md` contains local working instructions and is intentionally ignored.

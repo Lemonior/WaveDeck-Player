@@ -1,0 +1,14 @@
+WaveDeck Android development build
+
+WaveDeck source: MIT License, copyright 2026 WaveDeck contributors. The Android APK includes NewPipe Extractor, licensed under GPL-3.0-or-later; distribution of the combined Android application is under GPL-3.0-or-later. The desktop editions retain their existing licenses.
+
+NewPipe Extractor v0.27.1, commit 6ce85c1af05bbb854bae73f8936fd9f75bb8f9e1:
+https://github.com/TeamNewPipe/NewPipeExtractor
+Full GPL license is included in licenses/NewPipe-GPL-3.0.txt.
+
+AndroidX Media3 and AndroidX libraries: Apache License 2.0, The Android Open Source Project.
+https://github.com/androidx/media
+
+NewPipe transitive dependencies: Rhino / Rhino Engine (MPL 2.0), jsoup (MIT), nanojson (Apache 2.0, copyright 2011 The nanojson Authors), Protocol Buffers (BSD-3-Clause), JSR-305 (BSD), Guava (Apache 2.0), core library desugaring (OpenJDK GPLv2 with Classpath Exception). Full upstream texts are in licenses/ and extracted library notices in licenses/dependencies/ inside this APK.
+
+Rebuild instructions and pinned dependency versions: MusicPlayer/WaveDeck.Android/README.md in the WaveDeck source repository.

@@ -1,0 +1,90 @@
+plugins { id 'com.android.application' }
+
+def props = new XmlSlurper().parse(file('../../../Directory.Build.props'))
+def appVersion = props.PropertyGroup.Version.text()
+def parts = appVersion.tokenize('.').collect { it as int }
+def root = file('../../..')
+android {
+    namespace 'io.github.lemonior.wavedeck'
+    compileSdk 36
+    buildToolsVersion '36.0.0'
+    defaultConfig {
+        applicationId 'io.github.lemonior.wavedeck'
+        minSdk 26
+        targetSdk 36
+        versionCode parts[0] * 1000000 + parts[1] * 1000 + parts[2]
+        versionName appVersion
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    signingConfigs {
+        development {
+            storeFile file(System.getenv('WAVEDECK_ANDROID_KEYSTORE') ?: new File(root, 'tools/android-signing/wavedeck-development.jks'))
+            storePassword System.getenv('WAVEDECK_ANDROID_STORE_PASSWORD')
+            keyAlias 'wavedeck-development'
+            keyPassword System.getenv('WAVEDECK_ANDROID_STORE_PASSWORD')
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.development }
+        release { signingConfig signingConfigs.development; minifyEnabled false }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+    buildFeatures { buildConfig true }
+    bundle { language { enableSplit = false } }
+    lint { abortOnError true; checkReleaseBuilds true }
+    packaging { resources { excludes += ['META-INF/INDEX.LIST', 'META-INF/DEPENDENCIES'] } }
+}
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.11.1'
+    implementation 'androidx.media3:media3-exoplayer-dash:1.11.1'
+    implementation 'androidx.media3:media3-session:1.11.1'
+    implementation 'androidx.media3:media3-database:1.11.1'
+    implementation 'androidx.core:core:1.17.0'
+    implementation 'androidx.documentfile:documentfile:1.1.0'
+    implementation 'com.github.teamnewpipe:NewPipeExtractor:v0.27.1'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs_nio:2.1.5'
+    testImplementation 'junit:junit:4.13.2'
+    compileOnly 'com.google.j2objc:j2objc-annotations:3.1'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+}
+
+dependencyLocking { lockAllConfigurations() }
+
+tasks.register('youtubeProbe', JavaExec) {
+    dependsOn 'compileDebugUnitTestJavaWithJavac'
+    classpath = files("${buildDir}/intermediates/javac/debugUnitTest/compileDebugUnitTestJavaWithJavac/classes") +
+        files("${buildDir}/intermediates/javac/debug/compileDebugJavaWithJavac/classes") + configurations.debugUnitTestRuntimeClasspath
+    mainClass = 'io.github.lemonior.wavedeck.YouTubeProbe'
+}
+
+def dependencyNotices = layout.buildDirectory.dir('generated/dependency-notices')
+android.sourceSets.main.assets.srcDir(dependencyNotices)
+tasks.register('generateDependencyNotices') {
+    inputs.files(configurations.releaseRuntimeClasspath)
+    outputs.dir(dependencyNotices)
+    doLast {
+        def folder = new File(dependencyNotices.get().asFile, 'licenses/dependencies')
+        folder.mkdirs()
+        def index = []
+        configurations.releaseRuntimeClasspath.resolvedConfiguration.resolvedArtifacts.sort { it.moduleVersion.id.toString() }.each { artifact ->
+            def id = artifact.moduleVersion.id.toString()
+            index.add(id)
+            new java.util.zip.ZipFile(artifact.file).withCloseable { archive ->
+                archive.entries().findAll { !it.directory && it.name.toLowerCase().matches('.*(license|notice|copying|copyright)([._/-].*)?') && it.size < 500000 }.each { entry ->
+                    def name = (id + '-' + entry.name).replaceAll('[^A-Za-z0-9._-]', '_')
+                    new File(folder, name).bytes = archive.getInputStream(entry).withCloseable { it.bytes }
+                }
+            }
+        }
+        new File(folder, 'DEPENDENCIES.txt').text = index.join('\n') + '\n'
+    }
+}
+tasks.named('preBuild') { dependsOn 'generateDependencyNotices' }
