@@ -7,7 +7,7 @@
   <string name="add_folder">Adicionar pasta</string>
   <string name="settings">Configurações</string>
   <string name="ready">Adicione músicas ou cole uma URL para começar</string>
-  <string name="url_hint">YouTube, playlist ou URL direta de áudio</string>
+  <string name="url_hint">YouTube, Spotify ou link direto de áudio</string>
   <string name="go">Ir</string>
   <string name="cancel">Cancelar</string>
   <string name="stream">Ouvir online</string>
@@ -128,4 +128,6 @@ A disponibilidade do YouTube depende do site e da conexão. Esta versão reprodu
   <string name="preset_saved">Predefinição de áudio salva.</string>
   <string name="save_preset">Salvar predefinição de áudio</string>
   <string name="load_preset">Carregar predefinição de áudio</string>
+  <string name="spotify_notice">Os links do Spotify reproduzem áudios correspondentes do YouTube. Apenas a lista da incorporação pública do Spotify está disponível; playlists grandes podem ficar incompletas.</string>
+  <string name="open_match">Abrir correspondência no YouTube</string>
 </resources>

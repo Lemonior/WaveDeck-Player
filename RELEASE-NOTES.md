@@ -1,3 +1,18 @@
+# WaveDeck 1.1.1
+
+Import public Spotify songs, playlists and albums into the regular queue on Windows, Linux and Android. The user selected Spotify catalog import with matching YouTube audio.
+
+- Paste Spotify links or `spotify:track:…` URIs and use the normal Stream, Download or Download & play modes. Titles, artists, available playlist order and original catalog links are preserved.
+- Match audio lazily on YouTube with title, artist, duration and recording-version checks. Queue labels and source actions distinguish the catalog link from the selected audio source. No Spotify login or developer credentials are needed.
+- Reuse normal caching, downloads, EQ, transport controls and silent background preparation. Matched music videos do not expand into unrelated chapters.
+- English and Brazilian Portuguese messages describe public-list limits and matching. Private playlists, podcasts and local-only tracks are unsupported. Large playlists can be incomplete because only songs exposed by Spotify's public embed are available. Matches are best effort; a direct YouTube URL selects an exact recording.
+
+Download `WaveDeck-1.1.1-win-x64.zip`, `WaveDeck-1.1.1-linux-x64.zip`, or the directly installable `WaveDeck-1.1.1-android.apk`. The APK uses the existing development signer and can update the previous sideloaded version. Matching Android application and extractor source are included in `WaveDeck-1.1.1-android-source.zip`; checksum files accompany the downloads.
+
+The user confirmed the Spotify feature works and authorized committing and releasing 1.1.1 on November 22, 2026. Automated validation and its limits are recorded in `Context/1.1.1-spotify-validation.md`. The published 1.1.0 release/tag/assets are preserved.
+
+---
+
 # WaveDeck 1.1.0
 
 Native Android edition for sideloading on Android 8 and newer, alongside the Windows and Linux portable editions.

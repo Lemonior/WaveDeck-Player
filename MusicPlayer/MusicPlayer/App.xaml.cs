@@ -40,6 +40,10 @@ public partial class App : Application
             MainWindow = fixture; fixture.Show(); fixture.Activate();
             File.WriteAllText(Path.Combine(root, "window.txt"), new System.Windows.Interop.WindowInteropHelper(fixture).Handle.ToString()); return;
         }
+        if (e.Args.Contains("--spotify-test"))
+        {
+            Shutdown(await Validation.SpotifyOnlineTests.RunAsync(root ?? Path.Combine(AppContext.BaseDirectory, "spotify-test"))); return;
+        }
         if (e.Args.Contains("--online-test"))
         {
             var result = await Validation.OnlineTests.RunAsync(root ?? Path.Combine(AppContext.BaseDirectory, "online-test"), e.Args.Contains("--only-chapters"));

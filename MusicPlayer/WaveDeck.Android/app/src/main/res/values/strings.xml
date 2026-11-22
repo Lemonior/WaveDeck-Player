@@ -7,7 +7,7 @@
   <string name="add_folder">Add folder</string>
   <string name="settings">Settings</string>
   <string name="ready">Add music or paste a URL to begin</string>
-  <string name="url_hint">YouTube, playlist or direct audio URL</string>
+  <string name="url_hint">YouTube, Spotify or direct audio URL</string>
   <string name="go">Go</string>
   <string name="cancel">Cancel</string>
   <string name="stream">Stream</string>
@@ -128,4 +128,6 @@ YouTube availability depends on the site and your connection. This build plays p
   <string name="preset_saved">Sound preset saved.</string>
   <string name="save_preset">Save sound preset</string>
   <string name="load_preset">Load sound preset</string>
+  <string name="spotify_notice">Spotify links play matching YouTube audio. Only Spotify\'s public embed list is available; large playlists may be incomplete.</string>
+  <string name="open_match">Open matched YouTube source</string>
 </resources>

@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- Change this value to version every WaveDeck project, release ZIP and Android APK. -->
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
 </Project>

@@ -39,7 +39,7 @@ public partial class MainWindow
     private void StartChapterDetection(Track parent)
     {
         _chapterReadCancel?.Cancel();
-        if (parent.Url.Length == 0 || parent.DirectFallback || UrlService.IsDirectMedia(UrlService.Validate(parent.Url))) return;
+        if (parent.Url.Length == 0 || parent.DirectFallback || UrlService.IsDirectMedia(UrlService.Validate(parent.Url)) || SpotifyImport.IsSpotify(UrlService.Validate(parent.Url))) return;
         var cancel = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token); cancel.CancelAfter(TimeSpan.FromSeconds(45));
         _chapterReadCancel = cancel;
         _ = DetectChaptersAsync(parent, cancel, _navigationVersion);

@@ -122,7 +122,8 @@ public static partial class SelfTests
         {
             Assert(UrlService.IsYouTube(UrlService.Validate("https://music.youtube.com/watch?v=abc")), "YouTube Music was not recognized.");
             Assert(!UrlService.IsYouTube(UrlService.Validate("https://youtube.com.example.org/watch?v=abc")), "Lookalike host was recognized.");
-            try { UrlService.Validate("https://open.spotify.com/track/abc"); throw new Exception("Spotify accepted."); } catch (NotSupportedException) { }
+            Assert(UrlService.Validate("spotify:track:4uLU6hMCjMI75M1A2tKUQC").AbsoluteUri == "https://open.spotify.com/track/4uLU6hMCjMI75M1A2tKUQC", "Spotify URI was not normalized.");
+            try { UrlService.Validate("https://open.spotify.com/track/abc"); throw new Exception("Malformed Spotify ID accepted."); } catch (ArgumentException) { }
             try { UrlService.Validate("file:///C:/Windows/System32/cmd.exe"); throw new Exception("Executable scheme accepted."); } catch (ArgumentException) { }
         }));
         await Test("Shuffle plays every track once and repeat-all starts a new cycle", () => Sync(() =>
@@ -194,6 +195,7 @@ public static partial class SelfTests
         await RunSoundV2TestsAsync(root, Test, Sync);
         await RunLocalizationTestsAsync(root, Test, Sync);
         await RunUpdateTestsAsync(root, Test);
+        await RunSpotifyTestsAsync(root, Test, Sync);
         File.WriteAllText(Path.Combine(root, "summary.txt"), $"{results.Count - failures}/{results.Count} checks passed. Native Windows, .NET {Environment.Version}.\nAudible listening and online YouTube requests are separate checks.\n");
         return failures == 0 ? 0 : 1;
     }

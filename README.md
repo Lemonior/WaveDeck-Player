@@ -1,6 +1,6 @@
 # WaveDeck
 
-A music player with an early-2000s feel, live desktop visualizers and a ten-band equalizer. The desktop editions run on Windows 10/11 x64 and Linux x86_64; a native Android edition is in development for 1.1.0.
+A music player with an early-2000s feel, live desktop visualizers and a ten-band equalizer. Runs on Windows 10/11 x64, Linux x86_64 and Android 8+.
 
 Download the Windows or Linux ZIP from [GitHub Releases](https://github.com/Lemonior/WaveDeck-Player/releases). Extract the complete folder before launching.
 
@@ -12,7 +12,7 @@ Open **WaveDeck\WaveDeck.exe**. Keep the complete WaveDeck folder together. Its 
 
 The separate **WaveDeck-Linux** folder contains a self-contained Linux x86_64 build. Copy it to Linux, run `bash install-dependencies.sh` once if dependencies are missing, then `bash launch.sh`. The native executable is **WaveDeck**. Its README explains desktop dependencies, optional application-menu installation and platform differences.
 
-## Android 1.1.0 development build
+## Android
 
 The native Android project is [MusicPlayer/WaveDeck.Android](MusicPlayer/WaveDeck.Android/README.md). Download the APK directly from [GitHub Releases](https://github.com/Lemonior/WaveDeck-Player/releases), or build a signed, universal Android 8+ APK with JDK 17 or 21 on Windows:
 
@@ -20,7 +20,7 @@ The native Android project is [MusicPlayer/WaveDeck.Android](MusicPlayer/WaveDec
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Publish-Android.ps1
 ```
 
-The script downloads checksum-verified build tools into ignored `tools/`, runs unit checks and Android lint, verifies signing, and writes `WaveDeck-Android/WaveDeck-1.1.0-android.apk`, installation instructions and SHA-256 checksums. Keep the development signing key and password under `tools/android-signing/` private and backed up so future APKs can update the same installation.
+The script downloads checksum-verified build tools into ignored `tools/`, runs unit checks and Android lint, verifies signing, and writes `WaveDeck-Android/WaveDeck-<version>-android.apk`, installation instructions and SHA-256 checksums. Keep the development signing key and password under `tools/android-signing/` private and backed up so future APKs can update the same installation.
 
 Android supports local files/folders through the system picker, public YouTube videos/playlists, direct audio URLs, streaming and private offline copies. A Media3 foreground service owns playback so it continues with the screen off and provides lock-screen, wired headset and Bluetooth transport commands. Settings include themes, English / Português (Brasil), and release checks. Android updates use the system APK installer with user confirmation.
 
@@ -80,6 +80,16 @@ Playlist imports omit entries identified as private, deleted or unplayable, and 
 
 WaveDeck preloads up to the next three songs as soon as playback is ready, including chapters and the following playlist entries. It retains the planned shuffle order, limits preparation to three sources and releases unused sources when the queue or playback mode changes. Background preload failures are silent; error feedback occurs only when actually trying to play a failed song. Current audio keeps playing while a replacement prepares. Pause/resume, seeking, volume/EQ, repeat/shuffle and Stop remain available during downloads and preparation. Download progress is coalesced before reaching the UI; seeking and chapter reading use independent cancellation and cannot resurrect a stopped or replaced source. Playback errors produce a brief ding and status message, retry with fresh resolution, then skip to another playable song/track without a blocking dialog. This reduces interruptions; network failures and unavailable streams can still cause delays, and output is not guaranteed gapless. Import, preferences and other non-playback errors use themed dialogs.
 
+## Spotify links (1.1.1)
+
+Paste a public Spotify song, playlist or album link into the normal URL field, choose Stream, Download or Download & play, and press Go. Spotify URIs such as `spotify:track:…` and full `open.spotify.com` links are supported, including locale prefixes and share parameters. Spotify short links are expanded only through recognized Spotify hosts; paste the full link if a short link cannot expand.
+
+WaveDeck imports titles, artists and available playlist order from Spotify's public embed metadata, then searches YouTube when each song needs audio. The queue shows **SPOTIFY → YOUTUBE** (Android: **Spotify → YouTube**). **Open source** opens the Spotify catalog link; **Open matched YouTube source** opens the selected playback link once one is available. The original Spotify link stays in saved playlists. Matches are checked for title, artist, duration and recording-version words; uncertain matches fail/skip through normal playback error handling. Background preparation remains silent.
+
+This uses matching YouTube audio, not Spotify's stream or 30-second preview. No Spotify account, developer application or Premium subscription is needed. A matching title cannot guarantee the identical recording; use a direct YouTube link when you need a specific version. Private playlists, podcasts and local-only Spotify entries are not supported. **Only entries exposed by the public embed can be imported; large playlists may be incomplete.** Desktop Load next / Load all pages through that public list up to your configured limit. Android adds the available list up to its playlist limit. The interface displays the public-list limitation rather than claiming to have imported hidden entries.
+
+Available in [WaveDeck 1.1.1](https://github.com/Lemonior/WaveDeck-Player/releases/tag/v1.1.1) for Windows, Linux and Android. The user confirmed the feature works and approved publication on November 22, 2026. Its checks are recorded in [Context/1.1.1-spotify-validation.md](Context/1.1.1-spotify-validation.md).
+
 ## Application updates
 
 Starting with **1.0.2**, WaveDeck checks the latest stable release on the public [GitHub repository](https://github.com/Lemonior/WaveDeck-Player/releases) when it opens. No GitHub account or token is needed. Startup checks run quietly and show **Update available** when a newer Windows/Linux x64 ZIP is ready. Disable these checks in Settings if preferred. **Settings → Check Updates** checks immediately and shows the release notes and **Download and install**.
@@ -99,7 +109,7 @@ Connect explicitly imports an available session from a supported default-browser
 
 Browser security settings do not need to be disabled. Default-browser connection leaves that browser open; its temporary export is filtered and deleted. Disconnect deletes WaveDeck's stored session. Connection/disconnection take effect immediately. Real Google login and restricted-video access require an interactive account check.
 
-This uses a browser session: [yt-dlp no longer supports YouTube OAuth](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth). Restricted videos still require access on the account; YouTube can expire or reject sessions. Public videos usually need no connection. **Update YouTube tool** updates yt-dlp. Spotify integration is removed.
+This uses a browser session: [yt-dlp no longer supports YouTube OAuth](https://github.com/yt-dlp/yt-dlp/wiki/Extractors#logging-in-with-oauth). Restricted videos still require access on the account; YouTube can expire or reject sessions. Public videos usually need no connection. **Update YouTube tool** updates yt-dlp. Spotify catalog import uses public metadata independently of this connection.
 
 The app-style Google consent screen seen in other desktop apps is [Google OAuth](https://developers.google.com/identity/protocols/oauth2/native-app). It requires a registered Google Cloud desktop client and returns API authorization, which yt-dlp cannot use for YouTube media playback. WaveDeck currently uses the browser-session connection above; it does not request access to Gmail.
 
@@ -124,7 +134,7 @@ Preferences, queue, playback checkpoint, connection and error log live in %LOCAL
 
 ## Build and validate
 
-The application version lives in **`Directory.Build.props`** at the repository root. Change its single `<Version>1.1.0</Version>` value to version the desktop applications, their assembly metadata, About displays, release ZIPs and Android APK. New .NET projects under this root inherit it; Android's Gradle configuration reads the same file. [.NET imports this file automatically](https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory).
+The application version lives in **`Directory.Build.props`** at the repository root. Change its single `<Version>` value to version the desktop applications, their assembly metadata, About displays, release ZIPs and Android APK. New .NET projects under this root inherit it; Android's Gradle configuration reads the same file. [.NET imports this file automatically](https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-by-directory).
 
 Requires .NET 10 SDK on Windows.
 

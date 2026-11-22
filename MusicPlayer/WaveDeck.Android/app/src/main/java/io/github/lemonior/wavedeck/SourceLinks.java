@@ -13,6 +13,7 @@ final class SourceLinks {
     }
     static boolean isNetwork(String value) { try { String scheme = URI.create(value).getScheme(); return "https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme); } catch (IllegalArgumentException ignored) { return false; } }
     static String validate(String value) {
+        String spotify=SpotifyLinks.normalize(value);if(spotify!=null)return spotify;
         String result = value.trim(); URI uri;
         try { uri = URI.create(result); } catch (IllegalArgumentException error) { throw new IllegalArgumentException("Invalid media URL."); }
         if (!isNetwork(result) || uri.getHost() == null || uri.getUserInfo() != null || result.length() > 8192) throw new IllegalArgumentException("Use an HTTP or HTTPS media URL.");

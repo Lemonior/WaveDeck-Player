@@ -105,7 +105,7 @@ public final class PlaybackService extends MediaSessionService {
             @Override public void onPlayerError(PlaybackException error) {
                 MediaItem item = player.getCurrentMediaItem(); if (item == null) return;
                 Track track = Track.fromItem(item);
-                if (SourceLinks.isYouTube(track.source) && recovery++ < 1) { Sources.invalidate(track.source); player.prepare(); return; }
+                if ((SourceLinks.isYouTube(track.source)||SpotifyLinks.isSpotify(track.source)) && recovery++ < 1) { Sources.invalidate(track.source); player.prepare(); return; }
                 failed.add(item.mediaId); Bundle extras = new Bundle(); extras.putString("error", track.title); session.setSessionExtras(extras);
                 if (failed.size() < player.getMediaItemCount() && player.hasNextMediaItem()) { player.seekToNextMediaItem(); player.prepare(); }
                 else { player.pause(); player.stop(); }

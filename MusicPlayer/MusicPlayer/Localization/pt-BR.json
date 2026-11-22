@@ -474,5 +474,22 @@
   "The update helper could not start. Your player is still running. Check folder permissions or download the latest ZIP.": "Não foi possível iniciar o instalador da atualização. Seu player continua aberto. Verifique as permissões da pasta ou baixe o ZIP mais recente.",
   "The update was installed. Please start WaveDeck if it did not reopen.": "A atualização foi instalada. Inicie o WaveDeck se ele não tiver reaberto.",
   "The update timed out waiting for the player to close.": "O tempo de espera para fechar o player esgotou.",
-  "The update could not be installed. Check the application's .wavedeck-backups folder before retrying.": "Não foi possível instalar a atualização. Verifique a pasta .wavedeck-backups do aplicativo antes de tentar novamente."
+  "The update could not be installed. Check the application's .wavedeck-backups folder before retrying.": "Não foi possível instalar a atualização. Verifique a pasta .wavedeck-backups do aplicativo antes de tentar novamente.",
+  "Reading Spotify's public track list…": "Lendo a lista pública de músicas do Spotify…",
+  "Spotify imports use matching YouTube audio. Only songs exposed by Spotify's public embed are available; large playlists may be incomplete.": "Os links do Spotify usam áudios correspondentes do YouTube. Apenas as músicas expostas pela incorporação pública do Spotify estão disponíveis; playlists grandes podem ficar incompletas.",
+  "Finding a YouTube match for {0} — {1}…": "Procurando no YouTube: {0} — {1}…",
+  "No close YouTube match was found for this Spotify song. Try a direct YouTube link.": "Nenhuma correspondência próxima foi encontrada no YouTube para esta música do Spotify. Tente um link direto do YouTube.",
+  "This Spotify link has no public songs. Private playlists, podcasts and local-only items are not supported.": "Este link do Spotify não tem músicas públicas. Playlists privadas, podcasts e itens locais não são compatíveis.",
+  "Spotify's public page could not be read. Try again later or use a direct YouTube link.": "Não foi possível ler a página pública do Spotify. Tente mais tarde ou use um link direto do YouTube.",
+  "Use a Spotify song, album or playlist link.": "Use um link de música, álbum ou playlist do Spotify.",
+  "Use a complete public Spotify link.": "Use um link público completo do Spotify.",
+  "Use a media URL without embedded credentials.": "Use um link de mídia sem credenciais embutidas.",
+  "The Spotify short link could not be expanded. Paste its full open.spotify.com link.": "Não foi possível expandir o link curto do Spotify. Cole o link completo de open.spotify.com.",
+  "Unexpected Spotify redirect.": "Redirecionamento inesperado do Spotify.",
+  "The Spotify short link redirected too many times.": "O link curto do Spotify redirecionou muitas vezes.",
+  "Spotify's public page is too large.": "A página pública do Spotify é grande demais.",
+  "Import the Spotify playlist before playing individual songs.": "Importe a playlist do Spotify antes de reproduzir músicas individuais.",
+  "Spotify public list": "Lista pública do Spotify",
+  "Open matched YouTube source": "Abrir correspondência no YouTube",
+  "YouTube, Spotify links, SoundCloud, a supported site, or a direct audio / video URL": "YouTube, links do Spotify, SoundCloud, um site compatível ou um link direto de áudio / vídeo"
 }

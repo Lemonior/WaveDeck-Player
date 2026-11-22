@@ -30,7 +30,7 @@ final class Track {
         MediaMetadata.Builder metadata = new MediaMetadata.Builder().setTitle(title).setArtist(artist).setAlbumTitle(album).setIsPlayable(true);
         if (!artwork.isEmpty()) metadata.setArtworkUri(Uri.parse(artwork));
         android.os.Bundle extras = new android.os.Bundle(); extras.putString("track", json().toString()); metadata.setExtras(extras);
-        Uri uri = SourceLinks.isYouTube(source) ? new Uri.Builder().scheme("wavedeck").authority("stream").appendQueryParameter("url", source).build() : Uri.parse(source);
+        Uri uri = SourceLinks.isYouTube(source)||SpotifyLinks.isSpotify(source) ? new Uri.Builder().scheme("wavedeck").authority("stream").appendQueryParameter("url", source).appendQueryParameter("title",title).appendQueryParameter("artist",artist).appendQueryParameter("duration",Long.toString(durationMs)).build() : Uri.parse(source);
         MediaItem.Builder item = new MediaItem.Builder().setMediaId(id).setUri(uri).setMediaMetadata(metadata.build());
         if (SourceLinks.isNetwork(source)) item.setCustomCacheKey(SourceLinks.cacheKey(source));
         if (startMs > 0 || endMs > startMs) {

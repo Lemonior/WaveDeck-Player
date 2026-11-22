@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Runtime.CompilerServices;
 using MusicPlayer.Models;
 
 namespace MusicPlayer.Services;
@@ -16,12 +17,14 @@ public sealed class UrlService
     private readonly string _indexFile;
     private readonly object _indexGate = new();
     private Dictionary<string, string>? _index;
+    private readonly ConditionalWeakTable<Track, SemaphoreSlim> _spotifyGates = new();
     public UrlService(AudioTools tools, PlayerSettings settings, YouTubeSession? session = null, string? dataRoot = null)
     { _tools = tools; _settings = settings; _session = session; _indexFile = Path.Combine(dataRoot ?? settings.DownloadFolder, "download-history.jsonl"); }
     public static Uri Validate(string input)
     {
+        if (SpotifyImport.Normalize(input) is { } spotify) return spotify;
         if (!Uri.TryCreate(input.Trim(), UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http")) throw new ArgumentException("Paste a complete https:// or http:// music URL.");
-        if (uri.Host.Equals("open.spotify.com", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("spotify.link", StringComparison.OrdinalIgnoreCase)) throw new NotSupportedException("Spotify links are not supported. Use a YouTube or direct audio URL.");
+        if (uri.UserInfo.Length > 0) throw new ArgumentException("Use a media URL without embedded credentials.");
         return uri;
     }
     public static bool IsYouTube(Uri uri) => uri.Host.Equals("youtu.be", StringComparison.OrdinalIgnoreCase) || uri.Host.Equals("youtube.com", StringComparison.OrdinalIgnoreCase) || uri.Host.EndsWith(".youtube.com", StringComparison.OrdinalIgnoreCase);
@@ -36,6 +39,11 @@ public sealed class UrlService
     public async Task<PlaylistPage> ImportPageAsync(string input, int start, CancellationToken token, Action<string>? progress = null)
     {
         var uri = Validate(input);
+        if (SpotifyImport.IsSpotify(uri))
+        {
+            progress?.Invoke(L.T("Reading Spotify's public track list…"));
+            return await SpotifyImport.ReadPageAsync(uri, start, _settings.PlaylistLimit, _settings.PlaylistMaximum, token);
+        }
         if (IsDirectMedia(uri)) return new([DirectTrack(uri)], 2, false, 1);
         var end = Math.Min(_settings.PlaylistMaximum, start + _settings.PlaylistLimit - 1);
         if (start > end) return new([], start, false, null);
@@ -80,18 +88,22 @@ public sealed class UrlService
     }
     public async Task<ResolvedAudio> ResolveAsync(Track track, CancellationToken token, bool compatible = false)
     {
-        var uri = Validate(track.Url);
+        var playbackUrl = await PlaybackUrlAsync(track, token);
+        var uri = Validate(playbackUrl);
         if (IsDirectMedia(uri) || track.DirectFallback)
         {
             await ProbeDirectAsync(track, token); return new(uri.AbsoluteUri, []);
         }
         using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
-        args.AddRange(["--no-playlist", "--dump-single-json", "--skip-download", "-f", compatible ? "bestaudio[ext=m4a][protocol=https]/bestaudio[protocol=https]/bestaudio/best" : "bestaudio[protocol=https]/bestaudio/best", "--", track.Url]);
+        args.AddRange(["--no-playlist", "--dump-single-json", "--skip-download", "-f", compatible ? "bestaudio[ext=m4a][protocol=https]/bestaudio[protocol=https]/bestaudio/best" : "bestaudio[protocol=https]/bestaudio/best", "--", playbackUrl]);
         var result = await ProcessRunner.RunAsync(_tools.Require("yt-dlp"), args, token); Check(result);
         using var document = JsonDocument.Parse(result.Output); var root = document.RootElement;
-        var metadata = FromJson(root, track.Url);
-        if (!track.IsChapter) { track.Title = metadata.Title; track.Duration = metadata.Duration; if (!track.ChaptersChecked) ApplyChapters(result.Output, track); }
-        track.Artist = metadata.Artist;
+        var metadata = FromJson(root, playbackUrl);
+        if (!SpotifyImport.IsSpotify(Validate(track.Url)))
+        {
+            if (!track.IsChapter) { track.Title = metadata.Title; track.Duration = metadata.Duration; if (!track.ChaptersChecked) ApplyChapters(result.Output, track); }
+            track.Artist = metadata.Artist;
+        }
         var url = String(root, "url"); if (url.Length == 0) throw new InvalidOperationException("This site did not return a playable audio stream. Update the media tool from Settings.");
         var headers = new Dictionary<string, string>();
         if (root.TryGetProperty("http_headers", out var h)) foreach (var entry in h.EnumerateObject()) if (entry.Value.ValueKind == JsonValueKind.String) headers[entry.Name] = entry.Value.GetString()!;
@@ -99,9 +111,10 @@ public sealed class UrlService
     }
     public async Task<string> BufferPlaybackAsync(Track track, string cache, CancellationToken token)
     {
+        var playbackUrl = await PlaybackUrlAsync(track, token);
         Directory.CreateDirectory(cache);
         var prefix = "play-" + Guid.NewGuid().ToString("N"); using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
-        args.AddRange(["--no-playlist", "--ffmpeg-location", _tools.Require("ffmpeg"), "-f", "bestaudio[ext=m4a]/bestaudio/best", "-o", Path.Combine(cache, prefix + ".%(ext)s"), "--print", "after_move:WAVEDECK_FILE:%(filepath)s", "--", track.Url]);
+        args.AddRange(["--no-playlist", "--ffmpeg-location", _tools.Require("ffmpeg"), "-f", "bestaudio[ext=m4a]/bestaudio/best", "-o", Path.Combine(cache, prefix + ".%(ext)s"), "--print", "after_move:WAVEDECK_FILE:%(filepath)s", "--", playbackUrl]);
         try
         {
             var result = await ProcessRunner.RunAsync(_tools.Require("yt-dlp"), args, token); Check(result); return OutputFile(result);
@@ -121,13 +134,14 @@ public sealed class UrlService
             LoadIndex();
             if (_index!.TryGetValue(key, out var existing) && File.Exists(existing)) { track.LocalPath = existing; track.DownloadedChapter = track.IsChapter; progress?.Invoke(L.F($"Using the saved copy of {track.Title}")); return existing; }
         }
+        var playbackUrl = await PlaybackUrlAsync(track, token, progress);
         Directory.CreateDirectory(_settings.DownloadFolder); using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
         var encoding = _settings.DownloadFormat + "-" + _settings.DownloadQuality + "k";
         var section = track.IsChapter ? " [" + track.StartSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "-" + track.EndSeconds!.Value.ToString("0.###", CultureInfo.InvariantCulture) + "]" : "";
         var fileTitle = track.IsChapter ? string.Concat(track.Title.Select(c => Path.GetInvalidFileNameChars().Contains(c) || char.IsControl(c) ? '_' : c)).Trim().TrimEnd('.').Replace("%", "%%") : "%(title).160B";
         if (track.IsChapter && fileTitle.Length > 100) fileTitle = fileTitle[..100];
         if (track.IsChapter) args.AddRange(["--download-sections", "*" + track.StartSeconds.ToString("0.###", CultureInfo.InvariantCulture) + "-" + track.EndSeconds!.Value.ToString("0.###", CultureInfo.InvariantCulture)]);
-        args.AddRange(["--no-playlist", "--newline", "--windows-filenames", "--no-overwrites", "--ffmpeg-location", _tools.Require("ffmpeg"), "-f", "bestaudio/best", "-x", "--audio-format", _settings.DownloadFormat, "--audio-quality", _settings.DownloadQuality + "K", "--embed-metadata", "-o", Path.Combine(_settings.DownloadFolder, fileTitle + " [%(id)s] [" + encoding + "]" + section + ".%(ext)s"), "--print", "after_move:WAVEDECK_FILE:%(filepath)s", "--", track.Url]);
+        args.AddRange(["--no-playlist", "--newline", "--windows-filenames", "--no-overwrites", "--ffmpeg-location", _tools.Require("ffmpeg"), "-f", "bestaudio/best", "-x", "--audio-format", _settings.DownloadFormat, "--audio-quality", _settings.DownloadQuality + "K", "--embed-metadata", "-o", Path.Combine(_settings.DownloadFolder, fileTitle + " [%(id)s] [" + encoding + "]" + section + ".%(ext)s"), "--print", "after_move:WAVEDECK_FILE:%(filepath)s", "--", playbackUrl]);
         var result = await ProcessRunner.RunAsync(_tools.Require("yt-dlp"), args, token, line => { if (line.StartsWith("[download]", StringComparison.Ordinal) || line.StartsWith("[ExtractAudio]", StringComparison.Ordinal)) progress?.Invoke(AudioError.SafeMessage(line)); });
         Check(result); var path = OutputFile(result); track.LocalPath = path; track.DownloadedChapter = track.IsChapter;
         lock (_indexGate)
@@ -185,6 +199,7 @@ public sealed class UrlService
     internal static string DownloadKey(Track track, PlayerSettings settings) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", track.Url, settings.DownloadFolder, settings.DownloadFormat, settings.DownloadQuality) + (track.IsChapter ? "\n" + track.StartSeconds.ToString("R", CultureInfo.InvariantCulture) + "\n" + track.EndSeconds!.Value.ToString("R", CultureInfo.InvariantCulture) : ""))));
     public async Task<List<Track>> ChaptersAsync(Track parent, CancellationToken token, bool refresh = false)
     {
+        if (parent.Url.Length > 0 && SpotifyImport.IsSpotify(Validate(parent.Url))) { parent.ChaptersChecked = true; return []; }
         if (!refresh && parent.ChaptersChecked) return parent.Chapters;
         if (parent.Url.Length == 0) return [];
         using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
@@ -220,6 +235,38 @@ public sealed class UrlService
         if (parent.DirectFallback || IsDirectMedia(Validate(parent.Url))) return [parent];
         var chapters = await ChaptersAsync(parent, token);
         return chapters.Count > 0 ? chapters : [parent];
+    }
+    public async Task<string> PlaybackUrlAsync(Track track, CancellationToken token, Action<string>? progress = null)
+    {
+        var original = Validate(track.Url);
+        if (!SpotifyImport.IsSpotify(original)) return original.AbsoluteUri;
+        var gate = _spotifyGates.GetValue(track, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(token);
+        try
+        {
+            if (System.Text.RegularExpressions.Regex.IsMatch(track.MatchedUrl ?? "", @"^https://www\.youtube\.com/watch\?v=[a-zA-Z0-9_-]{11}$")) return track.MatchedUrl!;
+            if (track.Artist.Length == 0 || track.Title.Length == 0 || track.Title.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!original.AbsolutePath.Contains("/track/", StringComparison.Ordinal)) throw new InvalidOperationException("Import the Spotify playlist before playing individual songs.");
+                var imported = await SpotifyImport.ReadPageAsync(original, 1, 1, 1, token);
+                var metadata = imported.Tracks[0]; track.Title = metadata.Title; track.Artist = metadata.Artist; track.Duration = metadata.Duration;
+            }
+            progress?.Invoke(L.F($"Finding a YouTube match for {track.Artist} — {track.Title}…"));
+            using var lease = _session?.Lease() ?? new(null); var args = Common(lease);
+            args.AddRange(["--flat-playlist", "--dump-single-json", "--skip-download", "--ignore-errors", "--playlist-end", "8", "--", "ytsearch8:" + track.Artist + " - " + track.Title + " audio"]);
+            var result = await ProcessRunner.RunAsync(_tools.Require("yt-dlp"), args, token); Check(result);
+            using var json = JsonDocument.Parse(result.Output); var candidates = new List<SpotifyMatch.Candidate>();
+            if (json.RootElement.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
+                foreach (var item in entries.EnumerateArray().Where(e => e.ValueKind == JsonValueKind.Object))
+                {
+                    var id = String(item, "id"); if (!System.Text.RegularExpressions.Regex.IsMatch(id, @"^[a-zA-Z0-9_-]{11}$")) continue;
+                    candidates.Add(new("https://www.youtube.com/watch?v=" + id, String(item, "title"), String(item, "uploader") + " " + String(item, "channel"), item.TryGetProperty("duration", out var d) && d.ValueKind == JsonValueKind.Number ? d.GetDouble() : 0));
+                }
+            track.MatchedUrl = SpotifyMatch.Choose(track.Title, track.Artist, track.Duration, candidates) ?? throw new InvalidOperationException(SpotifyImport.NoMatch);
+            track.Kind = "SPOTIFY"; track.ChaptersChecked = true; track.UseChapters = false;
+            return track.MatchedUrl;
+        }
+        finally { gate.Release(); }
     }
     public static List<Track> ParseChapters(string json, Track parent)
     {

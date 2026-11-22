@@ -31,15 +31,21 @@ final class Sources {
         catch (ExecutionException | TimeoutException error) { throw new IOException("YouTube could not load this audio. The video may be unavailable or require verification.", error); }
         finally { IN_FLIGHT.remove(source, active); }
     }
-    static void invalidate(String source) { CACHE.remove(source); }
+    static void invalidate(String source) { CACHE.remove(SpotifyLinks.isSpotify(source)?SpotifySources.knownMatch(source):source); }
     static Uri resolveUri(Uri input) throws IOException {
         if (!"wavedeck".equals(input.getScheme())) return input;
         String source = input.getQueryParameter("url");
+        if(source!=null&&SpotifyLinks.isSpotify(source)){
+            Track track=new Track();track.source=SourceLinks.validate(source);track.title=Objects.toString(input.getQueryParameter("title"),"");track.artist=Objects.toString(input.getQueryParameter("artist"),"");
+            try{track.durationMs=Long.parseLong(Objects.toString(input.getQueryParameter("duration"),"0"));}catch(NumberFormatException ignored){}
+            return Uri.parse(resolve(SpotifySources.match(track)).url);
+        }
         if (source == null || !SourceLinks.isYouTube(source)) throw new IOException("Invalid streaming source.");
         return Uri.parse(resolve(source).url);
     }
     static ImportPage importUrl(String input, boolean chapters, Page next) throws Exception {
         String url = SourceLinks.validate(input);
+        if(SpotifyLinks.isSpotify(url))return new ImportPage(SpotifySources.read(url),null,url);
         if (!SourceLinks.isYouTube(url)) {
             Track track = new Track(); track.source = url;
             String name = Uri.parse(url).getLastPathSegment(); track.title = name == null || name.isEmpty() ? url : name;

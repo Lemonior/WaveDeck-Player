@@ -69,5 +69,11 @@ foreach ($platform in $Platforms) {
     $checksums += ((Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($archivePath))
     Write-Output "Packaged: $archivePath"
 }
+$checksums = foreach ($rid in @('win-x64', 'linux-x64')) {
+    $existingArchive = Join-Path $releaseRoot "WaveDeck-$version-$rid.zip"
+    if (Test-Path -LiteralPath $existingArchive -PathType Leaf) {
+        (Get-FileHash -LiteralPath $existingArchive -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($existingArchive)
+    }
+}
 Set-Content -LiteralPath (Join-Path $releaseRoot 'SHA256SUMS.txt') -Value $checksums -Encoding ASCII
 Write-Output "Release version: $version"
